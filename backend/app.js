@@ -142,7 +142,7 @@ app.use(
 app.use(cookieParser())
 app.use(cors({
   origin: ["http://localhost:8080",
-    "https://babyroy.onrender.com/",
+    "https://babyroymain.onrender.com",
     'https://t.me',
     'https://web.telegram.org',
     'https://telegram.org',
@@ -165,7 +165,7 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 const bot = new TelegramBot(token);
-bot.setWebHook('https://babyroy.onrender.com/');
+bot.setWebHook('https://babyroymain.onrender.com');
 // 📩 Listen for '/start' command
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
@@ -178,7 +178,7 @@ bot.onText(/\/start/, (msg) => {
           {
             text: 'Open BabyRoy Mini App',
             web_app: {
-              url: 'https://babyroy.onrender.com/',
+              url: 'https://babyroymain.onrender.com',
             },
           },
         ],
