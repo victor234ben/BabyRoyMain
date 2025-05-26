@@ -40,7 +40,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 const LoginPage = () => {
   const { login, telegramOauth } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [tgUser] = useState(window.Telegram?.WebApp?.initDataUnsafe?.user);
+  const [tgUser, setTgUser] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -49,42 +49,16 @@ const LoginPage = () => {
  
   // const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-  useEffect(() => {
-    if (typeof window !== "undefined" && window.Telegram?.WebApp) {
-      const tg = window.Telegram.WebApp;
+useEffect(() => {
+  if (typeof window !== "undefined" && window.Telegram?.WebApp) {
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
 
-      tg.ready(); // ✅ This is valid
-      tg.expand();
-
-      // console.log("User:", tg.initDataUnsafe.user);
-
-      // const sendTelegramConnection = async () => {
-      //   try {
-      //     const res = await fetch(`${API_URL}/telegram-connected`, {
-      //       method: "POST",
-      //       headers: {
-      //         "Content-Type": "application/json",
-      //       },
-      //       body: JSON.stringify({
-      //         user: tg.initDataUnsafe.user,
-      //         connectedAt: new Date().toISOString(),
-      //       }),
-      //     });
-
-      //     if (res.ok) {
-      //       toast.success("Telegram connected successfully");
-      //     } else {
-      //       toast.error(`Telegram connection failed: ${res.status}`);
-      //     }
-      //   } catch (error) {
-      //     console.error("Telegram connection error:", error);
-      //     toast.error("Telegram connection error");
-      //   }
-      // };
-
-      // sendTelegramConnection();
-    }
-  }, []);
+    // After calling ready(), user info should be available
+    setTgUser(tg.initDataUnsafe?.user || null);
+  }
+}, []);
 
   useEffect(() => {
     const authenticateTelegramUser = async () => {
