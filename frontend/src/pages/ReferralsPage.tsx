@@ -63,7 +63,7 @@ const ReferralsPage = () => {
   const handleShareCode = () => {
     if (!referralInfo?.referralCode) return;
 
-    const shareText = `Join me on BabyRoy and earn rewards! Use my referral code: ${referralInfo.referralCode}`;
+    const shareText = `Join me on BabyRoy and earn rewards! Use my referral link: https://t.me/babyroyarmy?start=${referralInfo.referralCode}`;
 
     if (navigator.share) {
       navigator
