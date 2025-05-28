@@ -169,6 +169,45 @@ app.use('/api', limiter);
 const webhookUrl = 'https://babyroy-rjjm.onrender.com/webhook';
 bot.setWebHook(webhookUrl);
 
+// Webhook endpoint
+app.post('/webhook', (req, res) => {
+  bot.processUpdate(req.body);
+  res.sendStatus(200);
+});
+
+// 📩 Listen for '/start' command
+bot.on('message', (msg) => {
+  console.log('Received message:', msg); // Debug log
+
+  if (msg.text === '/start') {
+    const chatId = msg.chat.id;
+    console.log('Processing /start command for chat:', chatId); // Debug log
+
+    // 👇 Send message with Web App button
+    bot.sendMessage(chatId, 'Welcome! Tap below to launch the mini app:', {
+      reply_markup: {
+        keyboard: [
+          [
+            {
+              text: 'Open BabyRoy Mini App',
+              web_app: {
+                url: 'https://babyroy-rjjm.onrender.com/',
+              },
+            },
+          ],
+        ],
+        resize_keyboard: true,
+        one_time_keyboard: true,
+      },
+    })
+      .then(() => {
+        console.log('Message sent successfully');
+      })
+      .catch((error) => {
+        console.error('Error sending message:', error);
+      });
+  }
+});
 
 
 
