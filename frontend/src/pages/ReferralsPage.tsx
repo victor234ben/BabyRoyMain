@@ -70,7 +70,7 @@ const ReferralsPage = () => {
         .share({
           title: "BabyRoy Referral",
           text: shareText,
-          url: `https://t.me/babyroyarmy?start=${referralInfo.referralCode}`,
+          url: `https://t.me/babyroybot?start=${referralInfo.referralCode}`,
         })
         .catch((error) => {
           console.error("Error sharing:", error);
