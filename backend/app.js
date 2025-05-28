@@ -143,7 +143,7 @@ app.use(cookieParser())
 app.use(cors({
   origin: [
     "http://localhost:8080",
-    "https://babyroy.vercel.app"
+    "https://babyroy-rjjm.onrender.com"
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
@@ -166,7 +166,7 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 const bot = new TelegramBot(token);
-bot.setWebHook('https://babyroy.vercel.app/');
+bot.setWebHook('https://babyroy-rjjm.onrender.com/');
 // 📩 Listen for '/start' command
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
@@ -179,7 +179,7 @@ bot.onText(/\/start/, (msg) => {
           {
             text: 'Open BabyRoy Mini App',
             web_app: {
-              url: 'https://babyroy.vercel.app/',
+              url: 'https://babyroy-rjjm.onrender.com/',
             },
           },
         ],
