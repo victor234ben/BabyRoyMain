@@ -18,6 +18,7 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 
 const token = process.env.TELEGRAM_TOKEN;
+const bot = new TelegramBot(token);
 const app = express();
 app.set('trust proxy', 1);
 
@@ -208,8 +209,6 @@ bot.on('message', (msg) => {
       });
   }
 });
-
-
 
 // Body parsing middleware
 app.use(express.json());

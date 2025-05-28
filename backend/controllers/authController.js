@@ -113,7 +113,19 @@ const loginUser = async (req, res) => {
 };
 
 const telegramLoginAndSignup = async (req, res) => {
-  const { telegramId, first_name, last_name } = req.body;
+  const { telegramId, first_name, last_name, referralCode } = req.body;
+
+  // Find referrer if referral code provided
+  let referredBy = null;
+
+  if (referralCode) {
+    const referrer = await User.findOne({ referralCode });
+    if (referrer) {
+      referredBy = referrer._id;
+    } else {
+      referredBy = ""
+    }
+  }
 
   // Atomically find or insert user
   const user = await User.findOneAndUpdate(
@@ -124,7 +136,8 @@ const telegramLoginAndSignup = async (req, res) => {
         last_name,
         telegramId,
         referralCode: generateReferralCode(), // optional
-        points: 0 // default points if needed
+        points: 0,
+        referredBy
       }
     },
     {
