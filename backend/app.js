@@ -165,32 +165,11 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
-const bot = new TelegramBot(token);
-bot.setWebHook('https://babyroy-rjjm.onrender.com/');
-// 📩 Listen for '/start' command
-bot.onText(/\/start/, (msg) => {
-  const chatId = msg.chat.id;
 
-  // 👇 Send message with Web App button
-  bot.sendMessage(chatId, 'Welcome! Tap below to launch the mini app:', {
-    reply_markup: {
-      keyboard: [
-        [
-          {
-            text: 'Open BabyRoy Mini App',
-            web_app: {
-              url: 'https://babyroy-rjjm.onrender.com/',
-            },
-          },
-        ],
-      ],
-      resize_keyboard: true,
-      one_time_keyboard: true,
-    },
-  });
-});
+const webhookUrl = 'https://babyroy-rjjm.onrender.com/webhook';
+bot.setWebHook(webhookUrl);
 
-bot.on("polling_error", console.error);
+
 
 
 // Body parsing middleware
