@@ -16,7 +16,8 @@ type AuthContextType = {
   telegramOauth: (
     telegramId: string,
     first_name: string,
-    last_name: string
+    last_name: string,
+    referralCode: string,
   ) => Promise<void>;
   register: (
     name: string,
@@ -94,11 +95,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const telegramOauth = async (
     telegramId: string,
     first_name: string,
-    last_name: string
+    last_name: string,
+    referralCode: string,
   ) => {
     setLoading(true);
     try {
-      await authAPI.telegramOauth({ telegramId, first_name, last_name });
+      await authAPI.telegramOauth({ telegramId, first_name, last_name, referralCode });
       toast.success("Logged in successful");
       navigate("/");
     } catch (error) {

@@ -46,6 +46,14 @@ const rewardSchema = new mongoose.Schema(
   }
 );
 
+rewardSchema.index(
+  { user: 1, type: 1, source: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { type: 'referral' }
+  }
+);
+
 const Reward = mongoose.model('Reward', rewardSchema);
 
 module.exports = Reward;

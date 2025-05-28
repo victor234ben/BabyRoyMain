@@ -46,30 +46,30 @@ const LoginPage = () => {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const from = (location.state as any)?.from || "/";
- 
-  // const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-useEffect(() => {
-  if (typeof window !== "undefined" && window.Telegram?.WebApp) {
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.Telegram?.WebApp) {
+      const tg = window.Telegram.WebApp;
+      tg.ready();
+      tg.expand();
 
-    // After calling ready(), user info should be available
-    setTgUser(tg.initDataUnsafe?.user || null);
-  }
-}, []);
+      // After calling ready(), user info should be available
+      setTgUser(tg.initDataUnsafe?.user || null);
+    }
+  }, []);
 
   useEffect(() => {
     const authenticateTelegramUser = async () => {
       if (tgUser) {
+        const referralBy = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
         try {
           setIsLoading(true);
           const telegramId = tgUser.id;
           const first_name = tgUser.first_name || "";
           const last_name = tgUser.last_name || "";
+          const referralCode = referralBy || "";
 
-          await telegramOauth(telegramId, first_name, last_name);
+          await telegramOauth(telegramId, first_name, last_name, referralCode);
           navigate(from, { replace: true });
         } catch (error) {
           console.error("Telegram OAuth failed:", error);
@@ -80,10 +80,6 @@ useEffect(() => {
 
     authenticateTelegramUser();
   }, [tgUser, telegramOauth, from, navigate]);
-
-  const handleSend = () => {
-    window.Telegram?.WebApp?.sendData("Hello from TypeScript!");
-  };
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),

@@ -3,12 +3,9 @@ import AppLayout from "@/components/layout/AppLayout";
 import { referralAPI, Referral, ReferralInfo } from "@/services/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Share, Copy, CheckCircle2} from "lucide-react";
+import { Share, Copy, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -73,7 +70,7 @@ const ReferralsPage = () => {
         .share({
           title: "BabyRoy Referral",
           text: shareText,
-          url: window.location.origin,
+          url: `https://t.me/babyroyarmy?start=${referralInfo.referralCode}`,
         })
         .catch((error) => {
           console.error("Error sharing:", error);
@@ -236,6 +233,5 @@ const ReferralsPage = () => {
     </AppLayout>
   );
 };
-
 
 export default ReferralsPage;

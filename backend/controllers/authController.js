@@ -111,20 +111,45 @@ const loginUser = async (req, res) => {
     });
   }
 };
-
+// to do tier one, tier two 1-50 1000 point 50+ 5000points per referrals
 const telegramLoginAndSignup = async (req, res) => {
   const { telegramId, first_name, last_name, referralCode } = req.body;
 
-  // Find referrer if referral code provided
-  let referredBy = null;
+  console.log("this user have a referral code included: " + referralCode);
 
-  if (referralCode) {
-    const referrer = await User.findOne({ referralCode });
+  // Check if user already exists
+  const existingUser = await User.findOne({ telegramId });
+
+  let referredBy = null;
+  let referrer = null;
+
+  // Only process referral for NEW users
+  if (!existingUser && referralCode) {
+    referrer = await User.findOne({ referralCode });
     if (referrer) {
       referredBy = referrer._id;
+
+      // Award referral points to the referrer
+      referrer.points += 1000;
+      referrer.totalEarned += 1000;
+      await referrer.save();
+
+      // Create reward record for the referrer
+      await Reward.create({
+        user: referrer._id,
+        amount: 1000,
+        type: 'referral',
+        source: telegramId, // or use the new user's ID after creation
+        sourceModel: 'User',
+        description: `Referral bonus for inviting ${first_name}`,
+      });
+
+      console.log(`Awarded 1000 points to referrer: ${referrer._id}`);
     } else {
-      referredBy = ""
+      console.log("Invalid referral code provided");
     }
+  } else if (existingUser) {
+    console.log("User already exists, no referral reward given");
   }
 
   // Atomically find or insert user
@@ -135,14 +160,14 @@ const telegramLoginAndSignup = async (req, res) => {
         first_name,
         last_name,
         telegramId,
-        referralCode: generateReferralCode(), // optional
+        referralCode: generateReferralCode(),
         points: 0,
         referredBy
       }
     },
     {
-      new: true,      // return the document *after* update/insert
-      upsert: true,   // insert if not found
+      new: true,
+      upsert: true,
     }
   );
 
@@ -159,8 +184,6 @@ const telegramLoginAndSignup = async (req, res) => {
     },
   });
 };
-
-
 
 const validateUser = (req, res) => {
   const user = req.user
