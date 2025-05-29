@@ -16,6 +16,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const verifyRoutes = require('./routes/verityTaskRoutes')
 const cookieParser = require('cookie-parser');
 const path = require('path');
+const { setWebhook } = require('./config/telegramWebhook');
 
 const token = process.env.TELEGRAM_TOKEN;
 const bot = new TelegramBot(token);
@@ -167,49 +168,6 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 
-const webhookUrl = 'https://babyroy-rjjm.onrender.com/webhook';
-bot.setWebHook(webhookUrl);
-
-// Webhook endpoint
-app.post('/webhook', (req, res) => {
-  bot.processUpdate(req.body);
-  res.sendStatus(200);
-});
-
-// 📩 Listen for '/start' command
-bot.on('message', (msg) => {
-  console.log('Received message:', msg); // Debug log
-
-  if (msg.text === '/start') {
-    const chatId = msg.chat.id;
-    console.log('Processing /start command for chat:', chatId); // Debug log
-
-    // 👇 Send message with Web App button
-    bot.sendMessage(chatId, 'Welcome! Tap below to launch the mini app:', {
-      reply_markup: {
-        keyboard: [
-          [
-            {
-              text: 'Open BabyRoy Mini App',
-              web_app: {
-                url: 'https://babyroy-rjjm.onrender.com/',
-              },
-            },
-          ],
-        ],
-        resize_keyboard: true,
-        one_time_keyboard: true,
-      },
-    })
-      .then(() => {
-        console.log('Message sent successfully');
-      })
-      .catch((error) => {
-        console.error('Error sending message:', error);
-      });
-  }
-});
-
 // Body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -218,6 +176,8 @@ app.use(express.urlencoded({ extended: false }));
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
+//setting webhook url
+setWebhook()
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -227,20 +187,71 @@ app.use('/api/referrals', referralRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', verifyRoutes)
 
-app.post('/telegram-webhook', (req, res) => {
-  bot.processUpdate(req.body);
-  res.sendStatus(200);
+// Webhook endpoint
+app.post('/webhook', (req, res) => {
+  console.log('Webhook received:', JSON.stringify(req.body, null, 2));
+
+  if (!req.body) {
+    console.log('Empty request body');
+    return res.sendStatus(400);
+  }
+
+  try {
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
+  } catch (error) {
+    console.error('Error processing update:', error);
+    res.sendStatus(500);
+  }
 });
 
-app.post('/api/telegram-connected', (req, res) => {
-  const { user, connectedAt } = req.body;
-  console.log('📲 Telegram Mini App connected!');
-  console.log('User info:', user);
-  console.log('Time:', connectedAt);
+// Handle /start command specifically
+bot.onText(/\/start/, (msg) => {
+  const chatId = msg.chat.id;
+  console.log('Start command received from chat:', chatId);
 
-  res.json({ status: 'received' });
-})
+  bot.sendMessage(chatId, 'Welcome! Tap below to launch the mini app:', {
+    reply_markup: {
+      keyboard: [
+        [
+          {
+            text: 'Open BabyRoy Mini App',
+            web_app: {
+              url: 'https://babyroy-rjjm.onrender.com/',
+            },
+          },
+        ],
+      ],
+      resize_keyboard: true,
+      one_time_keyboard: true,
+    },
+  })
+    .then(() => {
+      console.log('Message sent successfully to:', chatId);
+    })
+    .catch((error) => {
+      console.error('Error sending message:', error);
+    });
+});
 
+// Keep your existing message handler for debugging
+bot.on('message', (msg) => {
+  console.log('Any message received:', {
+    text: msg.text,
+    chat_id: msg.chat.id,
+    message_id: msg.message_id,
+    date: msg.date
+  });
+});
+
+app.get('/bot-info', async (req, res) => {
+  try {
+    const me = await bot.getMe();
+    res.json(me);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Health check route
 app.get('/status', (req, res) => {
