@@ -176,6 +176,7 @@ app.use(express.urlencoded({ extended: false }));
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
+
 //setting webhook url
 setWebhook()
 
@@ -205,19 +206,38 @@ app.post('/webhook', (req, res) => {
   }
 });
 
-// Handle /start command specifically
-bot.onText(/\/start/, (msg) => {
+// Handle /start command with optional parameters
+bot.onText(/\/start(.*)/, async (msg, match) => {
   const chatId = msg.chat.id;
-  console.log('Start command received from chat:', chatId);
+  const startParam = match[1] ? match[1].trim() : '';
 
-  bot.sendMessage(chatId, 'Welcome! Tap below to launch the mini app:', {
+  // Extract referral code if present (format: /start 3343545)
+  const referralCode = startParam || '';
+
+  // Send the image first
+  await bot.sendPhoto(chatId, 'https://res.cloudinary.com/dtcbirvxc/image/upload/v1747334030/kvqmrisqgphhhlsx3u8u.png', {
+    caption: referralCode ?
+      `Welcome to BabyRoy! 🎉\nYou were invited by a friend!` :
+      'Welcome to BabyRoy! 🎉'
+  });
+
+  // Build the mini app URL with parameters
+  let miniAppUrl = 'https://babyroy-rjjm.onrender.com/';
+  if (referralCode) {
+    miniAppUrl += `?ref=${referralCode}&userId=${chatId}`;
+  } else {
+    miniAppUrl += `?userId=${chatId}`;
+  }
+
+  // Send message with mini app button
+  await bot.sendMessage(chatId, 'Tap below to launch the mini app:', {
     reply_markup: {
       keyboard: [
         [
           {
-            text: 'Open BabyRoy Mini App',
+            text: 'Open BabyRoy Mini App 🚀',
             web_app: {
-              url: 'https://babyroy-rjjm.onrender.com/',
+              url: miniAppUrl,
             },
           },
         ],
@@ -225,14 +245,32 @@ bot.onText(/\/start/, (msg) => {
       resize_keyboard: true,
       one_time_keyboard: true,
     },
-  })
-    .then(() => {
-      console.log('Message sent successfully to:', chatId);
-    })
-    .catch((error) => {
-      console.error('Error sending message:', error);
-    });
+  });
+
+  //todo there should be a bonus for the reffered. i have done for the referral
+
+  // If there's a referral code, automatically trigger the mini app opening
+  if (referralCode) {
+    // Send an inline keyboard that auto-opens the mini app
+    setTimeout(async () => {
+      await bot.sendMessage(chatId, '🎁 Opening your referral bonus...', {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: '🚀 Launch App Now',
+                web_app: {
+                  url: miniAppUrl,
+                },
+              },
+            ],
+          ],
+        },
+      });
+    }, 1000); // Small delay for better UX
+  }
 });
+
 
 // Keep your existing message handler for debugging
 bot.on('message', (msg) => {
@@ -257,7 +295,6 @@ app.get('/bot-info', async (req, res) => {
 app.get('/status', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
-
 
 app.use(express.static(path.resolve(__dirname, '../frontend/dist')));
 
