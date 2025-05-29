@@ -1,10 +1,15 @@
+import TelegramBot from "node-telegram-bot-api";
+
 // Set webhook with better error handling
 export const setWebhook = async () => {
-  try {
-    const webhookUrl = 'https://babyroy-rjjm.onrender.com/webhook';
-    const result = await bot.setWebHook(webhookUrl);
-    console.log('Webhook set successfully:', result);
-  } catch (error) {
-    console.error('Failed to set webhook:', error);
-  }
+    const token = process.env.TELEGRAM_TOKEN;
+    const bot = new TelegramBot(token);
+    
+    try {
+        const webhookUrl = 'https://babyroy-rjjm.onrender.com/webhook';
+        const result = await bot.setWebHook(webhookUrl);
+        console.log('Webhook set successfully:', result);
+    } catch (error) {
+        console.error('Failed to set webhook:', error);
+    }
 };
