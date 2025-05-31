@@ -291,6 +291,87 @@ app.get('/bot-info', async (req, res) => {
   }
 });
 
+// Debug endpoint to receive and log Telegram data
+app.post('/api/debug/telegram-data', express.json(), (req, res) => {
+  console.log('\n🔍 === TELEGRAM DEBUG DATA RECEIVED ===');
+  console.log('Timestamp:', new Date().toISOString());
+  console.log('User Agent:', req.body.userAgent);
+
+  console.log('\n📱 TELEGRAM WEBAPP INFO:');
+  console.log('Version:', req.body.version);
+  console.log('Platform:', req.body.platform);
+  console.log('Color Scheme:', req.body.colorScheme);
+  console.log('Is Expanded:', req.body.isExpanded);
+  console.log('Viewport Height:', req.body.viewportHeight);
+
+  console.log('\n🎨 THEME PARAMS:');
+  console.log(JSON.stringify(req.body.themeParams, null, 2));
+
+  console.log('\n🔐 INIT DATA (Raw/Signed):');
+  console.log('initData:', req.body.initData);
+
+  console.log('\n⚠️  INIT DATA UNSAFE (Client-side):');
+  console.log('Full initDataUnsafe object:');
+  console.log(JSON.stringify(req.body.initDataUnsafe, null, 2));
+
+  if (req.body.initDataUnsafe) {
+    console.log('\n📋 INIT DATA UNSAFE - BREAKDOWN:');
+    const unsafe = req.body.initDataUnsafe;
+
+    // Log each property individually
+    Object.keys(unsafe).forEach(key => {
+      console.log(`${key}:`, unsafe[key]);
+    });
+
+    // Specifically check for user data
+    if (unsafe.user) {
+      console.log('\n👤 USER DATA:');
+      console.log('User ID:', unsafe.user.id);
+      console.log('First Name:', unsafe.user.first_name);
+      console.log('Last Name:', unsafe.user.last_name);
+      console.log('Username:', unsafe.user.username);
+      console.log('Language Code:', unsafe.user.language_code);
+      console.log('Is Premium:', unsafe.user.is_premium);
+    }
+
+    // Check for start parameters (different possible names)
+    console.log('\n🚀 START PARAMETERS CHECK:');
+    console.log('start_param:', unsafe.start_param);
+    console.log('startParam:', unsafe.startParam);
+    console.log('start_parameter:', unsafe.start_parameter);
+    console.log('startapp:', unsafe.startapp);
+    console.log('query_id:', unsafe.query_id);
+
+    // Check for other common fields
+    console.log('\n📊 OTHER FIELDS:');
+    console.log('auth_date:', unsafe.auth_date);
+    console.log('hash:', unsafe.hash);
+    console.log('chat_type:', unsafe.chat_type);
+    console.log('chat_instance:', unsafe.chat_instance);
+  }
+
+  console.log('\n=== END TELEGRAM DEBUG DATA ===\n');
+
+  // Send response back to frontend
+  res.json({
+    success: true,
+    message: 'Telegram data received and logged',
+    receivedKeys: req.body.initDataUnsafe ? Object.keys(req.body.initDataUnsafe) : [],
+    hasUser: !!(req.body.initDataUnsafe?.user),
+    hasStartParam: !!(req.body.initDataUnsafe?.start_param),
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Optional: Additional endpoint to get just the processed data
+app.get('/api/debug/telegram-summary', (req, res) => {
+  res.json({
+    message: 'Check your server console logs for detailed Telegram data',
+    endpoint: 'POST /api/debug/telegram-data',
+    note: 'Send Telegram WebApp data to see full debug output'
+  });
+});
+
 // Health check route
 app.get('/status', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
