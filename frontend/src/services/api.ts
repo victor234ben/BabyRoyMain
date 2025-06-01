@@ -48,7 +48,7 @@ export type Task = {
 
 export type Referral = {
   id: string;
-  name: string;
+  first_name: string;
   createdAt: string;
 };
 

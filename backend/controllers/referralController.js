@@ -47,7 +47,7 @@ const getUserReferralInfo = async (req, res) => {
 
     // Get recent referrals (limit 10)
     const referrals = await User.find({ referredBy: req.user._id })
-      .select('name avatar createdAt')
+      .select('first_name avatar createdAt')
       .sort({ createdAt: -1 })
       .limit(10);
 
@@ -91,10 +91,10 @@ const getReferralsList = async (req, res) => {
 
     // Get paginated list
     const referrals = await User.find({ referredBy: req.user._id })
-      .select('name avatar email createdAt')
-      .sort({ createdAt: -1 })
-      .skip(startIndex)
-      .limit(limit);
+      .select('first_name avatar email createdAt')
+        .sort({ createdAt: -1 })
+        .skip(startIndex)
+        .limit(limit);
 
     console.log(referrals)
 
@@ -128,7 +128,7 @@ const validateReferralCode = async (req, res) => {
       });
     }
 
-    const referrer = await User.findOne({ referralCode }).select('name avatar');
+    const referrer = await User.findOne({ referralCode }).select('first_name avatar');
 
     if (!referrer) {
       return res.status(404).json({
@@ -142,7 +142,7 @@ const validateReferralCode = async (req, res) => {
       success: true,
       isValid: true,
       referrer: {
-        name: referrer.name,
+        first_name: referrer.first_name,
         avatar: referrer.avatar,
       },
     });
