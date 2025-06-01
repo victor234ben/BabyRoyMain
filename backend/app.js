@@ -331,30 +331,14 @@ const handleUserCreation = async ({ telegramId, first_name, last_name, referralC
 
   let referredBy = null;
   let referrer = null;
+  let user = null;
 
-  // Only process referral for NEW users
+  // Lookup referrer if referralCode provided and user is new
   if (!existingUser && referralCode) {
     referrer = await User.findOne({ referralCode });
     if (referrer) {
       referredBy = referrer._id;
       referralApplied = true;
-
-      // Award referral points to the referrer
-      referrer.points += 1000;
-      referrer.totalEarned += 1000;
-      await referrer.save();
-
-      // Create reward record for the referrer
-      await Reward.create({
-        user: referrer._id,
-        amount: 1000,
-        type: 'referral',
-        source: referrer._id,
-        sourceModel: 'User',
-        description: `Referral bonus for inviting ${first_name}`,
-      });
-
-      console.log(`✅ Awarded 1000 points to referrer: ${referrer._id}`);
     } else {
       console.log("❌ Invalid referral code provided:", referralCode);
     }
@@ -362,9 +346,8 @@ const handleUserCreation = async ({ telegramId, first_name, last_name, referralC
     console.log("ℹ️ User already exists, no referral reward given");
   }
 
-  
-  // Atomically find or insert user
-  const user = await User.findOneAndUpdate(
+  // Atomically create or update the user
+  user = await User.findOneAndUpdate(
     { telegramId },
     {
       $setOnInsert: {
@@ -373,14 +356,58 @@ const handleUserCreation = async ({ telegramId, first_name, last_name, referralC
         telegramId,
         referralCode: generateReferralCode(),
         points: 0,
-        referredBy
-      }
+        totalEarned: 0,
+        referredBy,
+      },
     },
-    {
-      new: true,
-      upsert: true,
-    }
+    { new: true, upsert: true }
   );
+
+  // Award points to both referrer and referred user
+  if (referrer && referralApplied) {
+    // Check if referral reward already exists
+    const existingReward = await Reward.findOne({
+      user: referrer._id,
+      type: 'referral',
+      source: user._id,
+    });
+
+    if (!existingReward) {
+      // Reward the referrer
+      referrer.points += 1000;
+      referrer.totalEarned += 1000;
+      await referrer.save();
+
+      await Reward.create({
+        user: referrer._id,
+        amount: 1000,
+        type: 'referral',
+        source: user._id,
+        sourceModel: 'User',
+        description: `Referral bonus for inviting ${first_name}`,
+      });
+
+      console.log(`✅ Awarded 1000 points to referrer: ${referrer._id}`);
+
+      // Reward the referred user
+      user.points += 1000;
+      user.totalEarned += 1000;
+      await user.save();
+
+      await Reward.create({
+        user: user._id,
+        amount: 1000,
+        type: 'referral',
+        source: referrer._id,
+        sourceModel: 'User',
+        description: `Referral bonus for joining via ${referrer.first_name}`,
+      });
+
+      console.log(`✅ Awarded 1000 points to referred user: ${user._id}`);
+    } else {
+      console.log("⚠️ Referral reward already exists for this referred user.");
+    }
+  }
 
   return {
     user: {
@@ -391,9 +418,10 @@ const handleUserCreation = async ({ telegramId, first_name, last_name, referralC
       points: user.points,
     },
     isNewUser,
-    referralApplied
+    referralApplied,
   };
 };
+
 
 // **NEW: Function to handle user creation from /start command**
 const handleUserCreationFromStart = async (telegramUser, referralCode) => {
