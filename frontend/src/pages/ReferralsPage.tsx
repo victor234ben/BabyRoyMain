@@ -31,6 +31,7 @@ const ReferralsPage = () => {
 
         setReferralInfo(info.referralInfo);
         setReferralsList(list.referrals);
+        toast.success(referralsList);
       } catch (error) {
         console.error("Error fetching referral data:", error);
         toast.error("Failed to load referral data");
@@ -187,33 +188,32 @@ const ReferralsPage = () => {
                     </Button>
                   </div>
                 ) : (
-                  <>test</>
-                  // <div className="space-y-1">
-                  //   {referralsList?.map((referral, index) => (
-                  //     <div key={referral.id}>
-                  //       <div className="flex items-center justify-between py-3">
-                  //         <div className="flex items-center">
-                  //           <Avatar>
-                  //             <AvatarFallback className="text-white bg-[#041c31]">
-                  //               {referral.name.charAt(0).toUpperCase()}
-                  //             </AvatarFallback>
-                  //           </Avatar>
-                  //           <div className="ml-4">
-                  //             <div className="font-medium">{referral.name}</div>
-                  //             <div className="text-xs text-muted-foreground">
-                  //               Joined{" "}
-                  //               {format(
-                  //                 new Date(referral.createdAt),
-                  //                 "MMM dd, yyyy"
-                  //               )}
-                  //             </div>
-                  //           </div>
-                  //         </div>
-                  //       </div>
-                  //       {index < referralsList.length - 1 && <Separator />}
-                  //     </div>
-                  //   ))}
-                  // </div>
+                  <div className="space-y-1">
+                    {referralsList?.map((referral, index) => (
+                      <div key={referral.id}>
+                        <div className="flex items-center justify-between py-3">
+                          <div className="flex items-center">
+                            {/* <Avatar>
+                              <AvatarFallback className="text-white bg-[#041c31]">
+                                {referral.name.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar> */}
+                            <div className="ml-4">
+                              <div className="font-medium">{referral.name}</div>
+                              <div className="text-xs text-muted-foreground">
+                                Joined{" "}
+                                {format(
+                                  new Date(referral.createdAt),
+                                  "MMM dd, yyyy"
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        {index < referralsList.length - 1 && <Separator />}
+                      </div>
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>
