@@ -349,7 +349,7 @@ const handleUserCreation = async ({ telegramId, first_name, last_name, referralC
         user: referrer._id,
         amount: 1000,
         type: 'referral',
-        source: referrar._id,
+        source: referrer._id,
         sourceModel: 'User',
         description: `Referral bonus for inviting ${first_name}`,
       });
