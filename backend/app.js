@@ -362,6 +362,7 @@ const handleUserCreation = async ({ telegramId, first_name, last_name, referralC
     console.log("ℹ️ User already exists, no referral reward given");
   }
 
+  
   // Atomically find or insert user
   const user = await User.findOneAndUpdate(
     { telegramId },
