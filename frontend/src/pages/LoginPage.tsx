@@ -8,105 +8,45 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [tgUser, setTgUser] = useState(null);
   const [error, setError] = useState(null);
-  const [debugInfo, setDebugInfo] = useState([]); // For visual debugging
   const navigate = useNavigate();
   const location = useLocation();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const from = (location.state as any)?.from || "/dashboard";
 
-  // Helper function to add debug info
-  const addDebug = (message) => {
-    const timestamp = new Date().toLocaleTimeString();
-    setDebugInfo((prev) => [...prev, `[${timestamp}] ${message}`]);
-    console.log(message);
-  };
-
   useEffect(() => {
-    let retryCount = 0;
-    const maxRetries = 10;
-    let retryTimeout;
-
     const initializeTelegramWebApp = () => {
       try {
-        addDebug(
-          `🔄 Telegram WebApp init attempt ${retryCount + 1}/${maxRetries}`
-        );
-
         if (typeof window !== "undefined" && window.Telegram?.WebApp) {
           const tg = window.Telegram.WebApp;
-
-          addDebug("📱 Telegram WebApp found, calling ready()...");
           tg.ready();
           tg.expand();
 
-          setTimeout(() => {
-            const user = tg.initDataUnsafe?.user;
+          console.log("Telegram WebApp initialized:", tg.initDataUnsafe);
 
-            if (user && user.id) {
-              addDebug(
-                `✅ User data found: ID=${user.id}, Name=${user.first_name}`
-              );
-              setTgUser(user);
-            } else if (retryCount < maxRetries - 1) {
-              addDebug(
-                `❌ No user data yet, retrying... (attempt ${retryCount + 1})`
-              );
-              retryCount++;
-              retryTimeout = setTimeout(initializeTelegramWebApp, 300);
-            } else {
-              addDebug("❌ Failed to get user data after all retries");
-              setError(
-                "Unable to get user information from Telegram. Please make sure you opened this through the Telegram bot."
-              );
-              setIsLoading(false);
-            }
-          }, 200);
-        } else if (retryCount < maxRetries - 1) {
-          addDebug(
-            `⏳ Telegram WebApp not ready, retrying... (attempt ${
-              retryCount + 1
-            })`
-          );
-          retryCount++;
-          retryTimeout = setTimeout(initializeTelegramWebApp, 200);
-        } else {
-          // Final fallback - check if we're in development
-          if (
-            window.location.hostname === "localhost" ||
-            window.location.hostname === "127.0.0.1"
-          ) {
-            addDebug("🛠️ Development mode detected - using mock data");
-            setTgUser({
-              id: 123456789,
-              first_name: "Dev",
-              last_name: "User",
-              username: "devuser",
-            });
+          // Get user info from Telegram
+          const user = tg.initDataUnsafe?.user;
+          if (user) {
+            setTgUser(user);
           } else {
-            addDebug("❌ Telegram WebApp not available after all retries");
-            setError("This app must be opened through Telegram");
+            setError("Unable to get user information from Telegram");
             setIsLoading(false);
           }
-        }
-      } catch (err) {
-        addDebug(`💥 Error initializing Telegram WebApp: ${err.message}`);
-        if (retryCount < maxRetries - 1) {
-          retryCount++;
-          retryTimeout = setTimeout(initializeTelegramWebApp, 500);
         } else {
-          setError("Failed to initialize Telegram WebApp");
+          // Fallback for development or non-Telegram environment
+          console.warn("Telegram WebApp not available");
+          setError("This app must be opened through Telegram");
           setIsLoading(false);
         }
+      } catch (err) {
+        console.error("Error initializing Telegram WebApp:", err);
+        setError("Failed to initialize Telegram WebApp");
+        setIsLoading(false);
       }
     };
 
-    initializeTelegramWebApp();
-
-    return () => {
-      if (retryTimeout) {
-        clearTimeout(retryTimeout);
-      }
-    };
+    // Small delay to ensure Telegram WebApp is ready
+    setTimeout(initializeTelegramWebApp, 100);
   }, []);
 
   useEffect(() => {
@@ -121,26 +61,26 @@ const LoginPage = () => {
         const last_name = tgUser.last_name || "";
         const username = tgUser.username || "";
 
-        addDebug("=== AUTHENTICATION START ===");
-        addDebug(`User: ${first_name} (ID: ${telegramId})`);
-        addDebug("Note: User account already created via bot /start command");
+        console.log("Authenticating user:", {
+          telegramId,
+          first_name,
+          last_name,
+          username,
+        });
 
-        // Simplified authentication - no referral code needed
-        const authResult = await telegramOauth(
+        // Call telegramOauth WITHOUT referral code (handled in /start webhook)
+        await telegramOauth(
           telegramId,
           first_name,
           last_name,
           username
+          // No referral code parameter needed anymore
         );
 
-        addDebug(
-          `✅ Auth successful: ${JSON.stringify(
-            authResult?.user?.first_name || "Unknown"
-          )}`
-        );
+        // Navigate to dashboard or intended route
         navigate(from, { replace: true });
       } catch (error) {
-        addDebug(`❌ Auth failed: ${error.message}`);
+        console.error("Telegram OAuth failed:", error);
         setError("Authentication failed. Please try again.");
         setIsLoading(false);
       }
@@ -149,46 +89,28 @@ const LoginPage = () => {
     authenticateTelegramUser();
   }, [tgUser, telegramOauth, from, navigate]);
 
-  // Show debug info in UI (only in loading state)
+  // Loading state
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-paws-primary/20 to-paws-accent/20 p-4">
-        <div className="flex flex-col items-center space-y-4 w-full max-w-md">
+        <div className="flex flex-col items-center space-y-4">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-paws-primary">
             <PawPrint className="h-8 w-8 text-white" />
           </div>
           <Loader className="animate-spin w-8 h-8 text-paws-primary" />
-          <div className="text-center">
-            <p className="text-paws-primary font-medium">
-              Connecting to BabyRoy...
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              Initializing Telegram connection
-            </p>
-          </div>
-
-          {/* DEBUG OUTPUT - Remove this in production */}
-          <div className="w-full mt-4 p-3 bg-black/10 rounded-lg max-h-48 overflow-y-auto">
-            <p className="text-xs font-bold text-gray-700 mb-2">Debug Log:</p>
-            {debugInfo.map((info, index) => (
-              <p
-                key={index}
-                className="text-xs text-gray-600 font-mono break-words"
-              >
-                {info}
-              </p>
-            ))}
-          </div>
+          <p className="text-center text-paws-primary font-medium">
+            Connecting to BabyRoy...
+          </p>
         </div>
       </div>
     );
   }
 
-  // Error state with debug info
+  // Error state
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-paws-primary/20 to-paws-accent/20 p-4">
-        <div className="flex flex-col items-center space-y-4 text-center w-full max-w-md">
+        <div className="flex flex-col items-center space-y-4 text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500">
             <PawPrint className="h-8 w-8 text-white" />
           </div>
@@ -202,24 +124,12 @@ const LoginPage = () => {
               Try Again
             </button>
           </div>
-
-          {/* DEBUG OUTPUT - Remove this in production */}
-          <div className="w-full mt-4 p-3 bg-black/10 rounded-lg max-h-48 overflow-y-auto">
-            <p className="text-xs font-bold text-gray-700 mb-2">Debug Log:</p>
-            {debugInfo.map((info, index) => (
-              <p
-                key={index}
-                className="text-xs text-gray-600 font-mono break-words"
-              >
-                {info}
-              </p>
-            ))}
-          </div>
         </div>
       </div>
     );
   }
 
+  // This should not render if everything works correctly
   return <p>Authentication complete</p>;
 };
 

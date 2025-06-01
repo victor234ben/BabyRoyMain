@@ -113,75 +113,73 @@ const loginUser = async (req, res) => {
 };
 // to do tier one, tier two 1-50 1000 point 50+ 5000points per referrals
 const telegramLoginAndSignup = async (req, res) => {
-  const { telegramId, first_name, last_name, referralCode } = req.body;
-  console.log("this user have a referral code included: " + referralCode);
+  const { telegramId, first_name, last_name, username } = req.body;
 
-  // Check if user already exists
-  const existingUser = await User.findOne({ telegramId });
+  console.log("Telegram OAuth request:", { telegramId, first_name, last_name, username });
 
-  let referredBy = null;
-  let referrer = null;
+  try {
+    // Find existing user (should exist from /start command)
+    let user = await User.findOne({ telegramId });
 
-  // Only process referral for NEW users
-  if (!existingUser && referralCode) {
-    referrer = await User.findOne({ referralCode });
-    if (referrer) {
-      referredBy = referrer._id;
+    if (user) {
+      // User exists - update their info with latest from Telegram
+      user = await User.findOneAndUpdate(
+        { telegramId },
+        {
+          $set: {
+            first_name: first_name || user.first_name,
+            last_name: last_name || user.last_name,
+            username: username || user.username,
+            // Add any other fields you want to update from Telegram OAuth
+            lastActive: new Date()
+          }
+        },
+        { new: true }
+      );
 
-      // Award referral points to the referrer
-      referrer.points += 1000;
-      referrer.totalEarned += 1000;
-      await referrer.save();
-
-      // Create reward record for the referrer
-      await Reward.create({
-        user: referrer._id,
-        amount: 1000,
-        type: 'referral',
-        source: telegramId, // or use the new user's ID after creation
-        sourceModel: 'User',
-        description: `Referral bonus for inviting ${first_name}`,
-      });
-
-      console.log(`Awarded 1000 points to referrer: ${referrer._id}`);
+      console.log(`Updated existing user: ${user._id}`);
     } else {
-      console.log("Invalid referral code provided");
-    }
-  } else if (existingUser) {
-    console.log("User already exists, no referral reward given");
-  }
+      // Fallback: Create user if somehow they don't exist
+      // This shouldn't happen often with your new flow
+      console.log("User not found in database, creating new user (fallback)");
 
-  // Atomically find or insert user
-  const user = await User.findOneAndUpdate(
-    { telegramId },
-    {
-      $setOnInsert: {
+      user = await User.create({
         first_name,
         last_name,
+        username,
         telegramId,
         referralCode: generateReferralCode(),
         points: 0,
-        referredBy
-      }
-    },
-    {
-      new: true,
-      upsert: true,
+        referredBy: null // No referral code processing here anymore
+      });
+
+      console.log(`Created new user (fallback): ${user._id}`);
     }
-  );
 
-  generateToken(user._id, res);
+    // Generate JWT token
+    generateToken(user._id, res);
 
-  res.status(201).json({
-    success: true,
-    user: {
-      _id: user._id,
-      first_name: user.first_name,
-      telegramId: user.telegramId,
-      referralCode: user.referralCode,
-      points: user.points,
-    },
-  });
+    res.status(200).json({
+      success: true,
+      user: {
+        _id: user._id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        username: user.username,
+        telegramId: user.telegramId,
+        referralCode: user.referralCode,
+        points: user.points,
+      },
+    });
+
+  } catch (error) {
+    console.error("Error in telegramLoginAndSignup:", error);
+    res.status(500).json({
+      success: false,
+      message: "Authentication failed",
+      error: error.message
+    });
+  }
 };
 
 const validateUser = (req, res) => {

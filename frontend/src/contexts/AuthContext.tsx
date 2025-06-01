@@ -17,7 +17,7 @@ type AuthContextType = {
     telegramId: string,
     first_name: string,
     last_name: string,
-    username: string,
+    username: string
   ) => Promise<void>;
   register: (
     name: string,
@@ -96,11 +96,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     telegramId: string,
     first_name: string,
     last_name: string,
-    username: string,
+    username: string
   ) => {
     setLoading(true);
     try {
-      
       // Build the request data object
       const requestData = {
         telegramId: telegramId.toString(), // Ensure it's a string
@@ -108,7 +107,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         last_name: last_name || "",
         username: username || "",
       };
-
 
       // Call the API with the cleaned data
       const data = await authAPI.telegramOauth(requestData);

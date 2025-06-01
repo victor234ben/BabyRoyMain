@@ -209,6 +209,7 @@ app.post('/webhook', (req, res) => {
   }
 });
 
+// Handle /start command with optional parameters
 // Handle /start command with optional parameters and account creation
 bot.onText(/\/start(.*)/, async (msg, match) => {
   const chatId = msg.chat.id;
@@ -298,7 +299,7 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
 
   } catch (error) {
     console.error("Error handling start command:", error);
-    
+
     // Still send the basic welcome message even if user creation fails
     await bot.sendMessage(chatId, 'Welcome to BabyRoy! 🎉\nTap below to launch the mini app:', {
       reply_markup: {
@@ -393,6 +394,80 @@ const handleUserCreation = async ({ telegramId, first_name, last_name, referralC
   };
 };
 
+// **NEW: Function to handle user creation from /start command**
+const handleUserCreationFromStart = async (telegramUser, referralCode) => {
+  if (!telegramUser?.id) {
+    console.log("No telegram user data available");
+    return;
+  }
+
+  const telegramId = telegramUser.id;
+  const first_name = telegramUser.first_name || '';
+  const last_name = telegramUser.last_name || '';
+  const username = telegramUser.username || '';
+
+  console.log("Processing user creation from /start:", {
+    telegramId,
+    first_name,
+    last_name,
+    username,
+    referralCode
+  });
+
+  // Check if user already exists
+  const existingUser = await User.findOne({ telegramId });
+
+  if (existingUser) {
+    console.log(`User ${telegramId} already exists, skipping creation`);
+    return existingUser;
+  }
+
+  // Handle referral logic for NEW users only
+  let referredBy = null;
+  let referrer = null;
+
+  if (referralCode) {
+    referrer = await User.findOne({ referralCode });
+    if (referrer) {
+      referredBy = referrer._id;
+
+      // Award referral points to the referrer
+      referrer.points += 1000;
+      referrer.totalEarned += 1000;
+      await referrer.save();
+
+      // Create reward record for the referrer
+      await Reward.create({
+        user: referrer._id,
+        amount: 1000,
+        type: 'referral',
+        source: telegramId,
+        sourceModel: 'User',
+        description: `Referral bonus for inviting ${first_name}`,
+      });
+
+      console.log(`Awarded 1000 points to referrer: ${referrer._id}`);
+    } else {
+      console.log("Invalid referral code provided:", referralCode);
+    }
+  }
+
+  // Create new user
+  const user = await User.create({
+    first_name,
+    last_name,
+    username,
+    telegramId,
+    referralCode: generateReferralCode(),
+    points: 0,
+    referredBy
+  });
+
+  console.log(`Created new user: ${user._id} for telegram ID: ${telegramId}`);
+  return user;
+};
+
+
 // Keep your existing message handler for debugging
 bot.on('message', (msg) => {
   console.log('Any message received:', {
@@ -435,18 +510,6 @@ app.post('/debug/telegram-data', (req, res) => {
 // Health check route
 app.get('/status', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
-});
-
-// Add this route to handle URLs with referral parameters
-app.get('/', (req, res) => {
-  // Extract referral code from query parameters
-  const referralCode = req.query.ref || req.query.start;
-
-  if (referralCode) {
-    console.log('Frontend loaded with referral code:', referralCode);
-  }
-
-  res.sendFile(path.resolve(__dirname, '../frontend/dist', 'index.html'));
 });
 
 app.use(express.static(path.resolve(__dirname, '../frontend/dist')));
