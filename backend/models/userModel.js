@@ -46,6 +46,15 @@ const userSchema = new mongoose.Schema(
     referredBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
+      set: function (value) {
+        // Only allow setting if current value is null/undefined
+        if (this.referredBy == null) {
+          return value;
+        }
+        // Return existing value if trying to update
+        console.log(`⚠️ Attempted to change referredBy for user ${this.telegramId || 'unknown'} - blocked`);
+        return this.referredBy;
+      }
     },
     points: {
       type: Number,
