@@ -20,6 +20,7 @@ const { setWebhook } = require('./config/telegramWebhook');
 const User = require('./models/userModel');
 const Reward = require('./models/rewardModel');
 const generateReferralCode = require('./utils/referralCodeGenerator');
+const { default: mongoose } = require('mongoose');
 
 const token = process.env.TELEGRAM_TOKEN;
 const bot = new TelegramBot(token);
