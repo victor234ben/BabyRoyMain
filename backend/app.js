@@ -17,6 +17,8 @@ const verifyRoutes = require('./routes/verityTaskRoutes')
 const cookieParser = require('cookie-parser');
 const path = require('path');
 const { setWebhook } = require('./config/telegramWebhook');
+const User = require('./models/userModel');
+const Reward = require('./models/rewardModel');
 
 const token = process.env.TELEGRAM_TOKEN;
 const bot = new TelegramBot(token);
@@ -207,84 +209,189 @@ app.post('/webhook', (req, res) => {
   }
 });
 
-// Handle /start command with optional parameters
-// Handle /start command with optional parameters
+// Handle /start command with optional parameters and account creation
 bot.onText(/\/start(.*)/, async (msg, match) => {
   const chatId = msg.chat.id;
+  const userId = msg.from?.id;
+  const first_name = msg.from?.first_name || '';
+  const last_name = msg.from?.last_name || '';
+  const username = msg.from?.username || '';
   const startParam = match[1] ? match[1].trim() : '';
 
   // Extract referral code if present (format: /start 3343545)
-  const referralCode = startParam || '';
+  const referralCode = startParam || null;
 
   console.log("Start command received:", {
     chatId,
     startParam,
     referralCode,
     fullText: msg.text,
-    userId: msg.from?.id,
-    username: msg.from?.username
+    userId,
+    username,
+    first_name,
+    last_name
   });
 
-  // Send the image first
-  await bot.sendPhoto(chatId, 'https://res.cloudinary.com/dtcbirvxc/image/upload/v1747334030/kvqmrisqgphhhlsx3u8u.png', {
-    caption: referralCode ?
-      `Welcome to BabyRoy! 🎉\nYou were invited by a friend! Get ready for bonus rewards!` :
-      'Welcome to BabyRoy! 🎉'
-  });
+  try {
+    // Create/login user directly here using the telegramLoginAndSignup logic
+    const userResult = await handleUserCreation({
+      telegramId: userId,
+      first_name,
+      last_name,
+      referralCode
+    });
 
-  // Build the mini app URL with referral code as URL parameter as additional safety
-  let miniAppUrl = 'https://babyroy-rjjm.onrender.com/';
+    console.log("User creation/login result:", userResult);
 
-  // Add referral code to URL as backup method
-  if (referralCode) {
-    miniAppUrl += `?ref=${encodeURIComponent(referralCode)}`;
-    console.log(`Mini app URL with referral: ${miniAppUrl}`);
-  }
+    // Send the image first
+    await bot.sendPhoto(chatId, 'https://res.cloudinary.com/dtcbirvxc/image/upload/v1747334030/kvqmrisqgphhhlsx3u8u.png', {
+      caption: referralCode ?
+        `Welcome to BabyRoy! 🎉\nYou were invited by a friend! Get ready for bonus rewards!` :
+        'Welcome to BabyRoy! 🎉'
+    });
 
-  // Send message with mini app button
-  await bot.sendMessage(chatId, 'Tap below to launch the mini app:', {
-    reply_markup: {
-      keyboard: [
-        [
-          {
-            text: referralCode ? '🎁 Open BabyRoy Mini App (Bonus!)' : 'Open BabyRoy Mini App 🚀',
-            web_app: {
-              url: miniAppUrl,
-            },
-          },
-        ],
-      ],
-      resize_keyboard: true,
-      one_time_keyboard: true,
-    },
-  });
+    // Build the mini app URL (no need for ref param since user is already created)
+    const miniAppUrl = 'https://babyroy-rjjm.onrender.com/';
 
-  // If there's a referral code, send additional message for better UX
-  if (referralCode) {
-    setTimeout(async () => {
-      await bot.sendMessage(chatId, '🎁 Special referral bonus awaiting you!', {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: '🚀 Claim Bonus & Launch App',
-                web_app: {
-                  url: miniAppUrl,
-                },
+    // Send message with mini app button
+    await bot.sendMessage(chatId, 'Tap below to launch the mini app:', {
+      reply_markup: {
+        keyboard: [
+          [
+            {
+              text: referralCode ? '🎁 Open BabyRoy Mini App (Bonus!)' : 'Open BabyRoy Mini App 🚀',
+              web_app: {
+                url: miniAppUrl,
               },
-            ],
+            },
           ],
-        },
-      });
-    }, 1500); // Slightly longer delay for better UX
-  }
+        ],
+        resize_keyboard: true,
+        one_time_keyboard: true,
+      },
+    });
 
-  // Store referral attempt in database/log for debugging
-  if (referralCode) {
-    console.log(`Referral attempt logged: User ${chatId} with code ${referralCode}`);
-    // You could store this in your database for tracking/debugging
+    // If there's a referral code and user is new, send additional message
+    if (referralCode && userResult.isNewUser) {
+      setTimeout(async () => {
+        await bot.sendMessage(chatId, '🎁 Referral bonus has been credited to your account!', {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: '🚀 Launch App & Check Balance',
+                  web_app: {
+                    url: miniAppUrl,
+                  },
+                },
+              ],
+            ],
+          },
+        });
+      }, 1500);
+    }
+
+    // Log successful referral
+    if (referralCode && userResult.referralApplied) {
+      console.log(`✅ Referral bonus applied: User ${userId} with code ${referralCode}`);
+    }
+
+  } catch (error) {
+    console.error("Error handling start command:", error);
+    
+    // Still send the basic welcome message even if user creation fails
+    await bot.sendMessage(chatId, 'Welcome to BabyRoy! 🎉\nTap below to launch the mini app:', {
+      reply_markup: {
+        keyboard: [
+          [
+            {
+              text: 'Open BabyRoy Mini App 🚀',
+              web_app: {
+                url: 'https://babyroy-rjjm.onrender.com/',
+              },
+            },
+          ],
+        ],
+        resize_keyboard: true,
+        one_time_keyboard: true,
+      },
+    });
   }
 });
+
+// Extract the user creation logic into a separate function
+const handleUserCreation = async ({ telegramId, first_name, last_name, referralCode }) => {
+  console.log("Creating/finding user with referral code:", referralCode);
+
+  // Check if user already exists
+  const existingUser = await User.findOne({ telegramId });
+  let isNewUser = !existingUser;
+  let referralApplied = false;
+
+  let referredBy = null;
+  let referrer = null;
+
+  // Only process referral for NEW users
+  if (!existingUser && referralCode) {
+    referrer = await User.findOne({ referralCode });
+    if (referrer) {
+      referredBy = referrer._id;
+      referralApplied = true;
+
+      // Award referral points to the referrer
+      referrer.points += 1000;
+      referrer.totalEarned += 1000;
+      await referrer.save();
+
+      // Create reward record for the referrer
+      await Reward.create({
+        user: referrer._id,
+        amount: 1000,
+        type: 'referral',
+        source: telegramId,
+        sourceModel: 'User',
+        description: `Referral bonus for inviting ${first_name}`,
+      });
+
+      console.log(`✅ Awarded 1000 points to referrer: ${referrer._id}`);
+    } else {
+      console.log("❌ Invalid referral code provided:", referralCode);
+    }
+  } else if (existingUser) {
+    console.log("ℹ️ User already exists, no referral reward given");
+  }
+
+  // Atomically find or insert user
+  const user = await User.findOneAndUpdate(
+    { telegramId },
+    {
+      $setOnInsert: {
+        first_name,
+        last_name,
+        telegramId,
+        referralCode: generateReferralCode(),
+        points: 0,
+        referredBy
+      }
+    },
+    {
+      new: true,
+      upsert: true,
+    }
+  );
+
+  return {
+    user: {
+      _id: user._id,
+      first_name: user.first_name,
+      telegramId: user.telegramId,
+      referralCode: user.referralCode,
+      points: user.points,
+    },
+    isNewUser,
+    referralApplied
+  };
+};
 
 // Keep your existing message handler for debugging
 bot.on('message', (msg) => {

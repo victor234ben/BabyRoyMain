@@ -18,8 +18,6 @@ type AuthContextType = {
     first_name: string,
     last_name: string,
     username: string,
-    referralCode?: string | null,
-    debugTelegramData?: any
   ) => Promise<void>;
   register: (
     name: string,
@@ -99,50 +97,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     first_name: string,
     last_name: string,
     username: string,
-    referralCode?: string | null,
-    debugTelegramData?: any // Add this parameter
   ) => {
     setLoading(true);
     try {
-      // Ensure referralCode is properly handled - convert undefined to null
-      const cleanReferralCode =
-        referralCode === undefined ? null : referralCode;
-
+      
       // Build the request data object
       const requestData = {
         telegramId: telegramId.toString(), // Ensure it's a string
         first_name: first_name || "",
         last_name: last_name || "",
         username: username || "",
-        referralCode: cleanReferralCode, // This should be either string or null
-        debugTelegramData, // Include debug data
       };
 
-      console.log("=== AUTHCONTEXT TELEGRAM OAUTH ===");
-      console.log("Raw parameters received:", {
-        telegramId,
-        first_name,
-        last_name,
-        username,
-        referralCode,
-      });
-      console.log("Cleaned request data:", requestData);
-      console.log("ReferralCode value:", cleanReferralCode);
-      console.log("ReferralCode type:", typeof cleanReferralCode);
-      console.log("ReferralCode is null?", cleanReferralCode === null);
-      console.log(
-        "ReferralCode is undefined?",
-        cleanReferralCode === undefined
-      );
-      console.log("ReferralCode truthiness:", !!cleanReferralCode);
-
-      // Log the complete debug data being sent
-      if (debugTelegramData) {
-        console.log(
-          "🔍 Debug Telegram Data being sent to backend:",
-          debugTelegramData
-        );
-      }
 
       // Call the API with the cleaned data
       const data = await authAPI.telegramOauth(requestData);
