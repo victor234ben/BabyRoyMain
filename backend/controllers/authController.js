@@ -111,64 +111,56 @@ const loginUser = async (req, res) => {
     });
   }
 };
+
 // to do tier one, tier two 1-50 1000 point 50+ 5000points per referrals
 const telegramLoginAndSignup = async (req, res) => {
   const { telegramId, first_name, last_name, username } = req.body;
 
-  console.log("Telegram OAuth request:", { telegramId, first_name, last_name, username });
+  console.log("Telegram OAuth request (find user only):", { telegramId, first_name, last_name, username });
 
   try {
-    // Find existing user (should exist from /start command)
-    let user = await User.findOne({ telegramId });
+    // ONLY find existing user - no creation here
+    const user = await User.findOne({ telegramId });
 
-    if (user) {
-      // User exists - update their info with latest from Telegram
-      user = await User.findOneAndUpdate(
-        { telegramId },
-        {
-          $set: {
-            first_name: first_name || user.first_name,
-            last_name: last_name || user.last_name,
-            username: username || user.username,
-            // Add any other fields you want to update from Telegram OAuth
-            lastActive: new Date()
-          }
-        },
-        { new: true }
-      );
-
-      console.log(`Updated existing user: ${user._id}`);
-    } else {
-      // Fallback: Create user if somehow they don't exist
-      // This shouldn't happen often with your new flow
-      console.log("User not found in database, creating new user (fallback)");
-
-      user = await User.create({
-        first_name,
-        last_name,
-        username,
-        telegramId,
-        referralCode: generateReferralCode(),
-        points: 0,
-        referredBy: null // No referral code processing here anymore
+    if (!user) {
+      console.log(`❌ User not found for telegramId: ${telegramId}`);
+      return res.status(404).json({
+        success: false,
+        message: "User not found. Please start the bot first with /start command.",
+        error: "USER_NOT_FOUND"
       });
-
-      console.log(`Created new user (fallback): ${user._id}`);
     }
 
+    // User exists - update their info with latest from Telegram
+    const updatedUser = await User.findOneAndUpdate(
+      { telegramId },
+      {
+        $set: {
+          first_name: first_name || user.first_name,
+          last_name: last_name || user.last_name,
+          username: username || user.username,
+          lastActive: new Date()
+        }
+      },
+      { new: true }
+    );
+
+    console.log(`✅ Found and authenticated user: ${updatedUser._id}`);
+
     // Generate JWT token
-    generateToken(user._id, res);
+    generateToken(updatedUser._id, res);
 
     res.status(200).json({
       success: true,
       user: {
-        _id: user._id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        username: user.username,
-        telegramId: user.telegramId,
-        referralCode: user.referralCode,
-        points: user.points,
+        _id: updatedUser._id,
+        first_name: updatedUser.first_name,
+        last_name: updatedUser.last_name,
+        username: updatedUser.username,
+        telegramId: updatedUser.telegramId,
+        referralCode: updatedUser.referralCode,
+        points: updatedUser.points,
+        totalEarned: updatedUser.totalEarned,
       },
     });
 

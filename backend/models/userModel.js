@@ -24,9 +24,11 @@ const userSchema = new mongoose.Schema(
       type: String,
     },
     telegramId: {
-      type: String,
+      type: Number,
       unique: true,
       sparse: true,
+      index: true,
+      required: true
     },
     walletAddress: {
       type: String,
