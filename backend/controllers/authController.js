@@ -111,9 +111,27 @@ const loginUser = async (req, res) => {
     });
   }
 };
-// to do tier one, tier two 1-50 1000 point 50+ 5000points per referrals
+// Add this to your backend telegramLoginAndSignup function
 const telegramLoginAndSignup = async (req, res) => {
-  const { telegramId, first_name, last_name, referralCode } = req.body;
+  const { telegramId, first_name, last_name, referralCode, debugTelegramData } = req.body;
+
+  console.log("=== BACKEND TELEGRAM LOGIN DEBUG ===");
+  console.log("Received referralCode:", referralCode);
+  console.log("Received debugTelegramData:", debugTelegramData);
+
+  if (debugTelegramData) {
+    console.log("🔍 Complete Telegram WebApp Data:");
+    console.log("- initData:", debugTelegramData.initData);
+    console.log("- initDataUnsafe:", debugTelegramData.initDataUnsafe);
+    console.log("- start_param from initDataUnsafe:", debugTelegramData.initDataUnsafe?.start_param);
+    console.log("- All initDataUnsafe keys:", Object.keys(debugTelegramData.initDataUnsafe || {}));
+    console.log("- Platform:", debugTelegramData.platform);
+    console.log("- Version:", debugTelegramData.version);
+  }
+
+  console.log("=== END DEBUG ===");
+
+  // ... rest of your existing telegramLoginAndSignup code remains the same
   console.log("this user have a referral code included: " + referralCode);
 
   // Check if user already exists
@@ -138,7 +156,7 @@ const telegramLoginAndSignup = async (req, res) => {
         user: referrer._id,
         amount: 1000,
         type: 'referral',
-        source: telegramId, // or use the new user's ID after creation
+        source: telegramId,
         sourceModel: 'User',
         description: `Referral bonus for inviting ${first_name}`,
       });

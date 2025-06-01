@@ -18,7 +18,8 @@ type AuthContextType = {
     first_name: string,
     last_name: string,
     username: string,
-    referralCode?: string | null
+    referralCode?: string | null,
+    debugTelegramData?: any
   ) => Promise<void>;
   register: (
     name: string,
@@ -98,7 +99,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     first_name: string,
     last_name: string,
     username: string,
-    referralCode?: string | null
+    referralCode?: string | null,
+    debugTelegramData?: any // Add this parameter
   ) => {
     setLoading(true);
     try {
@@ -113,6 +115,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         last_name: last_name || "",
         username: username || "",
         referralCode: cleanReferralCode, // This should be either string or null
+        debugTelegramData, // Include debug data
       };
 
       console.log("=== AUTHCONTEXT TELEGRAM OAUTH ===");
@@ -132,6 +135,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         cleanReferralCode === undefined
       );
       console.log("ReferralCode truthiness:", !!cleanReferralCode);
+
+      // Log the complete debug data being sent
+      if (debugTelegramData) {
+        console.log(
+          "🔍 Debug Telegram Data being sent to backend:",
+          debugTelegramData
+        );
+      }
 
       // Call the API with the cleaned data
       const data = await authAPI.telegramOauth(requestData);

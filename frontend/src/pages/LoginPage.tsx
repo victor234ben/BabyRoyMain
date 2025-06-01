@@ -133,7 +133,7 @@ const LoginPage = () => {
 
   useEffect(() => {
     let retryCount = 0;
-    const maxRetries = 10;
+    const maxRetries = 20; // Increased from 10 to 20
     let retryTimeout;
 
     const initializeTelegramWebApp = () => {
@@ -149,13 +149,28 @@ const LoginPage = () => {
           tg.ready();
           tg.expand();
 
+          // Increased timeout and added multiple checks
           setTimeout(() => {
             const user = tg.initDataUnsafe?.user;
+
+            // LOG COMPLETE TELEGRAM DATA FOR DEBUGGING
+            console.log("🔍 === COMPLETE TELEGRAM WEBAPP DATA ===");
+            console.log("Full tg object:", tg);
+            console.log("Full initData:", tg.initData);
+            console.log("Full initDataUnsafe:", tg.initDataUnsafe);
+            console.log("User object:", user);
+            console.log("start_param:", tg.initDataUnsafe?.start_param);
+            console.log(
+              "All initDataUnsafe keys:",
+              Object.keys(tg.initDataUnsafe || {})
+            );
+            console.log("=== END TELEGRAM DATA ===");
 
             if (user && user.id) {
               console.log(
                 `✅ User data found: ID=${user.id}, Name=${user.first_name}`
               );
+              toast.success(`👋 Hello ${user.first_name}!`);
 
               // Check for referral code from Telegram if we don't have one yet
               if (!referralCode && tg.initDataUnsafe?.start_param) {
@@ -173,15 +188,18 @@ const LoginPage = () => {
                 `❌ No user data yet, retrying... (attempt ${retryCount + 1})`
               );
               retryCount++;
-              retryTimeout = setTimeout(initializeTelegramWebApp, 300);
+              // Progressive delay - longer waits for later attempts
+              const delay = retryCount < 5 ? 300 : retryCount < 10 ? 500 : 1000;
+              retryTimeout = setTimeout(initializeTelegramWebApp, delay);
             } else {
               console.log("❌ Failed to get user data after all retries");
+              toast.error("Connection timeout. Please try refreshing the app.");
               setError(
-                "Unable to get user information from Telegram. Please make sure you opened this through the Telegram bot."
+                "Unable to connect to Telegram. Please close and reopen the mini app, or refresh the page."
               );
               setIsLoading(false);
             }
-          }, 200);
+          }, 500); // Increased from 200ms to 500ms
         } else if (retryCount < maxRetries - 1) {
           console.log(
             `⏳ Telegram WebApp not ready, retrying... (attempt ${
@@ -189,7 +207,9 @@ const LoginPage = () => {
             })`
           );
           retryCount++;
-          retryTimeout = setTimeout(initializeTelegramWebApp, 200);
+          // Progressive delay for WebApp availability
+          const delay = retryCount < 5 ? 200 : retryCount < 10 ? 400 : 800;
+          retryTimeout = setTimeout(initializeTelegramWebApp, delay);
         } else {
           // Final fallback - check if we're in development
           if (
@@ -197,6 +217,7 @@ const LoginPage = () => {
             window.location.hostname === "127.0.0.1"
           ) {
             console.log("🛠️ Development mode detected - using mock data");
+            toast.info("Development mode - using mock data");
             setTgUser({
               id: 123456789,
               first_name: "Dev",
@@ -205,6 +226,7 @@ const LoginPage = () => {
             });
           } else {
             console.log("❌ Telegram WebApp not available after all retries");
+            toast.error("Telegram WebApp not available. Please try again.");
             setError("This app must be opened through Telegram");
             setIsLoading(false);
           }
@@ -213,14 +235,16 @@ const LoginPage = () => {
         console.log(`💥 Error initializing Telegram WebApp: ${err.message}`);
         if (retryCount < maxRetries - 1) {
           retryCount++;
-          retryTimeout = setTimeout(initializeTelegramWebApp, 500);
+          retryTimeout = setTimeout(initializeTelegramWebApp, 800); // Longer delay after errors
         } else {
+          toast.error("Failed to initialize. Please try again.");
           setError("Failed to initialize Telegram WebApp");
           setIsLoading(false);
         }
       }
     };
 
+    // Start initialization immediately
     initializeTelegramWebApp();
 
     return () => {
@@ -246,6 +270,32 @@ const LoginPage = () => {
         console.log(`User: ${first_name} (ID: ${telegramId})`);
         console.log(`Referral code: ${referralCode || "null"}`);
 
+        // SEND COMPLETE TELEGRAM DATA TO BACKEND FOR INSPECTION
+        const completeUserData = {
+          telegramId,
+          first_name,
+          last_name,
+          username,
+          referralCode: referralCode || null,
+          // Include complete Telegram WebApp data for debugging
+          debugTelegramData: window.Telegram?.WebApp
+            ? {
+                initData: window.Telegram.WebApp.initData,
+                initDataUnsafe: window.Telegram.WebApp.initDataUnsafe,
+                platform: window.Telegram.WebApp.platform,
+                version: window.Telegram.WebApp.version,
+                colorScheme: window.Telegram.WebApp.colorScheme,
+                themeParams: window.Telegram.WebApp.themeParams,
+                isExpanded: window.Telegram.WebApp.isExpanded,
+                viewportHeight: window.Telegram.WebApp.viewportHeight,
+                viewportStableHeight:
+                  window.Telegram.WebApp.viewportStableHeight,
+              }
+            : null,
+        };
+
+        console.log("Complete user data being sent:", completeUserData);
+
         if (referralCode) {
           toast.info(`🎁 Processing referral bonus: ${referralCode}`);
         }
@@ -255,7 +305,8 @@ const LoginPage = () => {
           first_name,
           last_name,
           username,
-          referralCode || null
+          referralCode || null,
+          completeUserData.debugTelegramData // Pass the debug data
         );
 
         console.log(
@@ -324,12 +375,17 @@ const LoginPage = () => {
           <div className="space-y-2">
             <h2 className="text-xl font-bold text-red-600">Connection Error</h2>
             <p className="text-red-500 max-w-md">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-paws-primary text-white rounded-lg hover:bg-paws-accent transition-colors"
-            >
-              Try Again
-            </button>
+            <div className="flex flex-col gap-2 mt-4">
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-paws-primary text-white rounded-lg hover:bg-paws-accent transition-colors"
+              >
+                🔄 Refresh App
+              </button>
+              <p className="text-xs text-gray-600">
+                💡 Tip: If this keeps happening, close and reopen the mini app
+              </p>
+            </div>
           </div>
         </div>
       </div>

@@ -4,6 +4,13 @@ declare global {
   interface Window {
     Telegram: {
       WebApp: {
+        platform: any;
+        version: any;
+        colorScheme: any;
+        themeParams: any;
+        isExpanded: any;
+        viewportHeight: any;
+        viewportStableHeight: any;
         initData: string;
         initDataUnsafe: {
           id?: number;
