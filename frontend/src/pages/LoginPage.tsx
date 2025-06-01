@@ -8,131 +8,170 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [tgUser, setTgUser] = useState(null);
   const [error, setError] = useState(null);
+  const [referralCode, setReferralCode] = useState(null);
+  const [debugInfo, setDebugInfo] = useState([]); // For visual debugging
   const navigate = useNavigate();
   const location = useLocation();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const from = (location.state as any)?.from || "/dashboard";
 
-  // Referral code management functions
-  const saveReferralCode = (code: unknown) => {
-    if (code && typeof window !== "undefined") {
-      const expirationTime = Date.now() + 60 * 60 * 1000; // 1 hour from now
-      const referralData = {
-        code: code,
-        timestamp: Date.now(),
-        expiration: expirationTime,
-      };
+  // Helper function to add debug info
+  const addDebug = (message) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setDebugInfo((prev) => [...prev, `[${timestamp}] ${message}`]);
+    console.log(message); // Still log to console
+  };
 
-      try {
-        sessionStorage.setItem(
-          "babyroy_referral",
-          JSON.stringify(referralData)
+  // Extract referral code immediately when component mounts
+  useEffect(() => {
+    const extractReferralCode = () => {
+      let code = null;
+
+      addDebug(`🔍 Starting referral extraction...`);
+      addDebug(`URL: ${window.location.href}`);
+      addDebug(`Search params: ${window.location.search}`);
+      addDebug(`Hash: ${window.location.hash}`);
+
+      // Method 1: Check URL search parameters (?ref=code)
+      const urlParams = new URLSearchParams(window.location.search);
+      code = urlParams.get("ref") || urlParams.get("start");
+
+      if (code) {
+        addDebug(`✅ Referral code from URL params: ${code}`);
+        setReferralCode(code);
+        return;
+      }
+
+      // Method 2: Check URL hash parameters (#ref=code)
+      if (window.location.hash) {
+        const hashParams = new URLSearchParams(
+          window.location.hash.substring(1)
         );
-        console.log("Referral code saved:", code);
-      } catch (err) {
-        console.warn("Could not save referral to session storage:", err);
-      }
-    }
-  };
-
-  const getReferralCode = () => {
-    if (typeof window === "undefined") return null;
-
-    try {
-      const stored = sessionStorage.getItem("babyroy_referral");
-      if (stored) {
-        const referralData = JSON.parse(stored);
-
-        // Check if expired
-        if (Date.now() > referralData.expiration) {
-          sessionStorage.removeItem("babyroy_referral");
-          console.log("Referral code expired and removed");
-          return null;
+        code = hashParams.get("start") || hashParams.get("ref");
+        if (code) {
+          addDebug(`✅ Referral code from URL hash: ${code}`);
+          setReferralCode(code);
+          return;
         }
-
-        console.log("Retrieved stored referral code:", referralData.code);
-        return referralData.code;
       }
-    } catch (err) {
-      console.warn("Could not retrieve referral from session storage:", err);
-    }
-    return null;
-  };
 
-  const clearReferralCode = () => {
-    if (typeof window !== "undefined") {
-      try {
-        sessionStorage.removeItem("babyroy_referral");
-        console.log("Referral code cleared");
-      } catch (err) {
-        console.warn("Could not clear referral from session storage:", err);
+      // Method 3: Check if Telegram WebApp is available and has start_param
+      if (window.Telegram?.WebApp?.initDataUnsafe?.start_param) {
+        code = window.Telegram.WebApp.initDataUnsafe.start_param;
+        addDebug(`✅ Referral code from Telegram start_param: ${code}`);
+        setReferralCode(code);
+        return;
       }
-    }
-  };
+
+      addDebug(`ℹ️ No referral code found`);
+    };
+
+    // Extract referral code immediately
+    extractReferralCode();
+
+    // Also try again after a short delay in case Telegram data loads later
+    const timeout = setTimeout(extractReferralCode, 500);
+
+    return () => clearTimeout(timeout);
+  }, []);
 
   useEffect(() => {
+    let retryCount = 0;
+    const maxRetries = 10;
+    let retryTimeout;
+
     const initializeTelegramWebApp = () => {
       try {
+        addDebug(
+          `🔄 Telegram WebApp init attempt ${retryCount + 1}/${maxRetries}`
+        );
+
         if (typeof window !== "undefined" && window.Telegram?.WebApp) {
           const tg = window.Telegram.WebApp;
+
+          addDebug("📱 Telegram WebApp found, calling ready()...");
           tg.ready();
           tg.expand();
 
-          console.log("Telegram WebApp initialized:", tg.initDataUnsafe);
+          setTimeout(() => {
+            const user = tg.initDataUnsafe?.user;
 
-          // CRITICAL: Extract and save referral code IMMEDIATELY
-          let referralCode = null;
+            if (user && user.id) {
+              addDebug(
+                `✅ User data found: ID=${user.id}, Name=${user.first_name}`
+              );
 
-          // Method 1: Check start_param from Telegram
-          if (tg.initDataUnsafe?.start_param) {
-            referralCode = tg.initDataUnsafe.start_param;
-            console.log("Referral code from start_param:", referralCode);
-          }
+              // Check for referral code from Telegram if we don't have one yet
+              if (!referralCode && tg.initDataUnsafe?.start_param) {
+                const tgReferralCode = tg.initDataUnsafe.start_param;
+                addDebug(
+                  `✅ Late referral code from Telegram: ${tgReferralCode}`
+                );
+                setReferralCode(tgReferralCode);
+              }
 
-          // Method 2: Check URL parameters as fallback
-          if (!referralCode) {
-            const urlParams = new URLSearchParams(window.location.search);
-            referralCode = urlParams.get("ref") || urlParams.get("start");
-          }
-
-          // Method 3: Check URL hash
-          if (!referralCode && window.location.hash) {
-            const hashParams = new URLSearchParams(
-              window.location.hash.substring(1)
-            );
-            referralCode = hashParams.get("start") || hashParams.get("ref");
-          }
-
-          // Save referral code if found
-          if (referralCode) {
-            saveReferralCode(referralCode);
-          }
-
-          // Get user info from Telegram
-          const user = tg.initDataUnsafe?.user;
-          if (user) {
-            setTgUser(user);
+              setTgUser(user);
+            } else if (retryCount < maxRetries - 1) {
+              addDebug(
+                `❌ No user data yet, retrying... (attempt ${retryCount + 1})`
+              );
+              retryCount++;
+              retryTimeout = setTimeout(initializeTelegramWebApp, 300);
+            } else {
+              addDebug("❌ Failed to get user data after all retries");
+              setError(
+                "Unable to get user information from Telegram. Please make sure you opened this through the Telegram bot."
+              );
+              setIsLoading(false);
+            }
+          }, 200);
+        } else if (retryCount < maxRetries - 1) {
+          addDebug(
+            `⏳ Telegram WebApp not ready, retrying... (attempt ${
+              retryCount + 1
+            })`
+          );
+          retryCount++;
+          retryTimeout = setTimeout(initializeTelegramWebApp, 200);
+        } else {
+          // Final fallback - check if we're in development
+          if (
+            window.location.hostname === "localhost" ||
+            window.location.hostname === "127.0.0.1"
+          ) {
+            addDebug("🛠️ Development mode detected - using mock data");
+            setTgUser({
+              id: 123456789,
+              first_name: "Dev",
+              last_name: "User",
+              username: "devuser",
+            });
           } else {
-            setError("Unable to get user information from Telegram");
+            addDebug("❌ Telegram WebApp not available after all retries");
+            setError("This app must be opened through Telegram");
             setIsLoading(false);
           }
-        } else {
-          // Fallback for development or non-Telegram environment
-          console.warn("Telegram WebApp not available");
-          setError("This app must be opened through Telegram");
-          setIsLoading(false);
         }
       } catch (err) {
-        console.error("Error initializing Telegram WebApp:", err);
-        setError("Failed to initialize Telegram WebApp");
-        setIsLoading(false);
+        addDebug(`💥 Error initializing Telegram WebApp: ${err.message}`);
+        if (retryCount < maxRetries - 1) {
+          retryCount++;
+          retryTimeout = setTimeout(initializeTelegramWebApp, 500);
+        } else {
+          setError("Failed to initialize Telegram WebApp");
+          setIsLoading(false);
+        }
       }
     };
 
-    // Small delay to ensure Telegram WebApp is ready
-    setTimeout(initializeTelegramWebApp, 100);
-  }, []);
+    initializeTelegramWebApp();
+
+    return () => {
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
+    };
+  }, [referralCode]);
 
   useEffect(() => {
     const authenticateTelegramUser = async () => {
@@ -141,97 +180,85 @@ const LoginPage = () => {
       try {
         setIsLoading(true);
 
-        // Get referral code from storage (this ensures persistence across reloads)
-        let referralCode = getReferralCode();
-
-        // If not in storage, try to extract again as fallback
-        if (!referralCode) {
-          const tg = window.Telegram?.WebApp;
-          referralCode = tg?.initDataUnsafe?.start_param || null;
-
-          if (!referralCode) {
-            const urlParams = new URLSearchParams(window.location.search);
-            referralCode = urlParams.get("ref");
-          }
-
-          // Save it if we found it
-          if (referralCode) {
-            saveReferralCode(referralCode);
-          }
-        }
-
-        // Debug logging
-        console.log("=== AUTHENTICATION DEBUG ===");
-        console.log("User:", tgUser);
-        console.log("Final referral code:", referralCode);
-        console.log(
-          "Telegram initDataUnsafe:",
-          window.Telegram?.WebApp?.initDataUnsafe
-        );
-        console.log("URL params:", window.location.search);
-        console.log(
-          "Session storage check:",
-          sessionStorage.getItem("babyroy_referral")
-        );
-
         const telegramId = tgUser.id;
         const first_name = tgUser.first_name || "";
         const last_name = tgUser.last_name || "";
         const username = tgUser.username || "";
 
-        // Call telegramOauth with referral code
+        addDebug("=== AUTHENTICATION START ===");
+        addDebug(`User: ${first_name} (ID: ${telegramId})`);
+        addDebug(`Referral code: ${referralCode || "null"}`);
+        addDebug(`Referral code type: ${typeof referralCode}`);
+
         const authResult = await telegramOauth(
           telegramId,
           first_name,
           last_name,
           username,
-          referralCode
+          referralCode || null
         );
 
-        // Clear referral code after successful authentication
-        if (referralCode && authResult) {
-          clearReferralCode();
-        }
-
-        // Navigate to dashboard or intended route
+        addDebug(
+          `✅ Auth successful: ${JSON.stringify(
+            authResult?.user?.first_name || "Unknown"
+          )}`
+        );
         navigate(from, { replace: true });
       } catch (error) {
-        console.error("Telegram OAuth failed:", error);
+        addDebug(`❌ Auth failed: ${error.message}`);
         setError("Authentication failed. Please try again.");
         setIsLoading(false);
       }
     };
 
     authenticateTelegramUser();
-  }, [tgUser, telegramOauth, from, navigate]);
+  }, [tgUser, telegramOauth, from, navigate, referralCode]);
 
-  // Loading state
+  // Show debug info in UI (only in loading state)
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-paws-primary/20 to-paws-accent/20 p-4">
-        <div className="flex flex-col items-center space-y-4">
+        <div className="flex flex-col items-center space-y-4 w-full max-w-md">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-paws-primary">
             <PawPrint className="h-8 w-8 text-white" />
           </div>
           <Loader className="animate-spin w-8 h-8 text-paws-primary" />
-          <p className="text-center text-paws-primary font-medium">
-            Connecting to BabyRoy...
-          </p>
-          {getReferralCode() && (
-            <p className="text-xs text-paws-accent">
-              Processing referral bonus...
+          <div className="text-center">
+            <p className="text-paws-primary font-medium">
+              Connecting to BabyRoy...
             </p>
-          )}
+            {referralCode && (
+              <p className="text-xs text-paws-accent mt-2">
+                🎁 Processing referral bonus ({referralCode})...
+              </p>
+            )}
+            <p className="text-xs text-gray-500 mt-1">
+              Initializing Telegram connection
+            </p>
+          </div>
+
+          {/* DEBUG OUTPUT - Remove this in production */}
+          <div className="w-full mt-4 p-3 bg-black/10 rounded-lg max-h-48 overflow-y-auto">
+            <p className="text-xs font-bold text-gray-700 mb-2">Debug Log:</p>
+            {debugInfo.map((info, index) => (
+              <p
+                key={index}
+                className="text-xs text-gray-600 font-mono break-words"
+              >
+                {info}
+              </p>
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
-  // Error state
+  // Error state with debug info
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-paws-primary/20 to-paws-accent/20 p-4">
-        <div className="flex flex-col items-center space-y-4 text-center">
+        <div className="flex flex-col items-center space-y-4 text-center w-full max-w-md">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500">
             <PawPrint className="h-8 w-8 text-white" />
           </div>
@@ -245,12 +272,24 @@ const LoginPage = () => {
               Try Again
             </button>
           </div>
+
+          {/* DEBUG OUTPUT - Remove this in production */}
+          <div className="w-full mt-4 p-3 bg-black/10 rounded-lg max-h-48 overflow-y-auto">
+            <p className="text-xs font-bold text-gray-700 mb-2">Debug Log:</p>
+            {debugInfo.map((info, index) => (
+              <p
+                key={index}
+                className="text-xs text-gray-600 font-mono break-words"
+              >
+                {info}
+              </p>
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
-  // This should not render if everything works correctly
   return <p>Authentication complete</p>;
 };
 

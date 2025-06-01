@@ -102,32 +102,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   ) => {
     setLoading(true);
     try {
-      // DEBUG: Log exactly what we're sending
+      // Ensure referralCode is properly handled - convert undefined to null
+      const cleanReferralCode =
+        referralCode === undefined ? null : referralCode;
+
+      // Build the request data object
       const requestData = {
+        telegramId: telegramId.toString(), // Ensure it's a string
+        first_name: first_name || "",
+        last_name: last_name || "",
+        username: username || "",
+        referralCode: cleanReferralCode, // This should be either string or null
+      };
+
+      console.log("=== AUTHCONTEXT TELEGRAM OAUTH ===");
+      console.log("Raw parameters received:", {
         telegramId,
         first_name,
         last_name,
         username,
         referralCode,
-      };
+      });
+      console.log("Cleaned request data:", requestData);
+      console.log("ReferralCode value:", cleanReferralCode);
+      console.log("ReferralCode type:", typeof cleanReferralCode);
+      console.log("ReferralCode is null?", cleanReferralCode === null);
+      console.log(
+        "ReferralCode is undefined?",
+        cleanReferralCode === undefined
+      );
+      console.log("ReferralCode truthiness:", !!cleanReferralCode);
 
-      // just to push 
-      // will remove later
-
-      console.log("=== AUTHCONTEXT TELEGRAM OAUTH ===");
-      console.log("Request data being sent:", requestData);
-      console.log("ReferralCode value:", referralCode);
-      console.log("ReferralCode type:", typeof referralCode);
-      console.log("ReferralCode is null?", referralCode === null);
-      console.log("ReferralCode is undefined?", referralCode === undefined);
-      console.log("ReferralCode truthiness:", !!referralCode);
-
-      // Call the API
+      // Call the API with the cleaned data
       const data = await authAPI.telegramOauth(requestData);
 
       console.log("API Response received:", data);
 
-      // CRITICAL FIX: Set user data from response
+      // Set user data from response
       if (data && data.user) {
         setUser(data.user);
         console.log("User data set:", data.user);
