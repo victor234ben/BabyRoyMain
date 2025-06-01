@@ -330,6 +330,18 @@ app.get('/status', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
 
+// Add this route to handle URLs with referral parameters
+app.get('/', (req, res) => {
+  // Extract referral code from query parameters
+  const referralCode = req.query.ref || req.query.start;
+
+  if (referralCode) {
+    console.log('Frontend loaded with referral code:', referralCode);
+  }
+
+  res.sendFile(path.resolve(__dirname, '../frontend/dist', 'index.html'));
+});
+
 app.use(express.static(path.resolve(__dirname, '../frontend/dist')));
 
 app.get('*', (req, res) => {
