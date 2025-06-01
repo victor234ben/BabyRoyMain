@@ -234,23 +234,23 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
   // Send immediate response to user while processing in background
   const sendWelcomeMessage = async () => {
     try {
-      // Send the image first
+      // Send the image first - ALWAYS send this
       await bot.sendPhoto(chatId, 'https://res.cloudinary.com/dtcbirvxc/image/upload/v1747334030/kvqmrisqgphhhlsx3u8u.png', {
         caption: referralCode ?
           `Welcome to BabyRoy! 🎉\nYou were invited by a friend! Get ready for bonus rewards!` :
-          'Welcome to BabyRoy! 🎉'
+          'Welcome to BabyRoy! 🎉\nReady to start your adventure?'
       });
 
       // Build the mini app URL
       const miniAppUrl = 'https://babyroy-rjjm.onrender.com/';
 
-      // Send message with mini app button
+      // Send message with mini app button - ALWAYS send this
       await bot.sendMessage(chatId, 'Tap below to launch the mini app:', {
         reply_markup: {
           keyboard: [
             [
               {
-                text: referralCode ? '🎁 Open BabyRoy Mini App (Bonus!)' : 'Open BabyRoy Mini App 🚀',
+                text: referralCode ? '🎁 Open BabyRoy Mini App (Bonus!)' : '🚀 Open BabyRoy Mini App',
                 web_app: {
                   url: miniAppUrl,
                 },
@@ -261,8 +261,33 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
           one_time_keyboard: true,
         },
       });
+
+      console.log(`✅ Welcome message sent to user ${userId}`);
     } catch (error) {
-      console.error("Error sending welcome message:", error);
+      console.error("❌ Error sending welcome message:", error);
+
+      // Fallback message if image fails
+      try {
+        await bot.sendMessage(chatId, `Welcome to BabyRoy! 🎉${referralCode ? '\nYou were invited by a friend! Get ready for bonus rewards!' : ''}\n\nTap below to launch the mini app:`, {
+          reply_markup: {
+            keyboard: [
+              [
+                {
+                  text: referralCode ? '🎁 Open BabyRoy Mini App (Bonus!)' : '🚀 Open BabyRoy Mini App',
+                  web_app: {
+                    url: 'https://babyroy-rjjm.onrender.com/',
+                  },
+                },
+              ],
+            ],
+            resize_keyboard: true,
+            one_time_keyboard: true,
+          },
+        });
+        console.log(`✅ Fallback welcome message sent to user ${userId}`);
+      } catch (fallbackError) {
+        console.error("❌ Even fallback message failed:", fallbackError);
+      }
     }
   };
 
@@ -315,11 +340,37 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
     }
   };
 
-  // Execute both processes
-  await Promise.all([
-    sendWelcomeMessage(),
-    processUserCreation()
-  ]);
+  // Execute both processes - ALWAYS send welcome message
+  try {
+    await Promise.all([
+      sendWelcomeMessage(),
+      processUserCreation()
+    ]);
+  } catch (error) {
+    console.error("❌ Error in /start command processing:", error);
+
+    // If everything fails, send a basic message at least
+    try {
+      await bot.sendMessage(chatId, `Welcome to BabyRoy! 🎉\n\nTap below to launch the mini app:`, {
+        reply_markup: {
+          keyboard: [
+            [
+              {
+                text: '🚀 Open BabyRoy Mini App',
+                web_app: {
+                  url: 'https://babyroy-rjjm.onrender.com/',
+                },
+              },
+            ],
+          ],
+          resize_keyboard: true,
+          one_time_keyboard: true,
+        },
+      });
+    } catch (finalError) {
+      console.error("❌ Final fallback message also failed:", finalError);
+    }
+  }
 });
 
 // Optimized user creation function with better error handling
