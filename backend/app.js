@@ -210,7 +210,6 @@ app.post('/webhook', (req, res) => {
   }
 });
 
-// Handle /start command with optional parameters
 // Handle /start command with optional parameters and account creation
 bot.onText(/\/start(.*)/, async (msg, match) => {
   const chatId = msg.chat.id;
