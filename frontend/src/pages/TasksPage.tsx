@@ -12,7 +12,14 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
-import { Search, Package, PackagePlus, Plus, Loader } from "lucide-react";
+import {
+  Search,
+  Package,
+  PackagePlus,
+  Plus,
+  Loader,
+  AlertCircle,
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWalletConnection } from "@/hooks/useWalletConnection";
@@ -23,28 +30,67 @@ const TasksPage = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [processing, setProcessing] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<TaskCategory>("ingame");
+  const [retryCount, setRetryCount] = useState(0);
+  const { user } = useAuth();
   const { connectWallet, disconnectWallet, isConnected, walletAddress } =
     useWalletConnection();
+
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 1000;
 
   useEffect(() => {
     const fetchTasks = async () => {
       try {
+        setLoading(true);
+        setError(null);
+
+        // Add a small delay to ensure the app is fully loaded
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        console.log("Fetching tasks...");
         const data = await taskAPI.getAllTasks();
+
+        if (!data || !Array.isArray(data.tasks)) {
+          throw new Error("Invalid response format from tasks API");
+        }
+
+        console.log("Tasks fetched successfully:", data.tasks.length);
         setTasks(data.tasks);
         setFilteredTasks(data.tasks);
       } catch (error) {
         console.error("Error fetching tasks:", error);
-        toast.error("Failed to load tasks");
+        const errorMessage = error.message || "Failed to load tasks";
+        setError(errorMessage);
+
+        // Show toast only if it's not a network/connection issue on first load
+        if (retryCount > 0) {
+          toast.error(errorMessage);
+        }
+
+        // Auto-retry logic for network issues
+        if (
+          retryCount < MAX_RETRIES &&
+          (error.message?.includes("fetch") ||
+            error.message?.includes("network") ||
+            error.message?.includes("connection"))
+        ) {
+          console.log(`Retrying... (${retryCount + 1}/${MAX_RETRIES})`);
+          setTimeout(() => {
+            setRetryCount((prev) => prev + 1);
+          }, RETRY_DELAY * (retryCount + 1));
+          return; // Don't set loading to false yet
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchTasks();
-  }, []);
+  }, [retryCount]);
 
   useEffect(() => {
     // Filter tasks based on search term and active tab
@@ -65,7 +111,7 @@ const TasksPage = () => {
     setFilteredTasks(result);
   }, [searchTerm, activeTab, tasks]);
 
-  const updateSingleTask = (updatedTask) => {
+  const updateSingleTask = (updatedTask: Task) => {
     setTasks((prevTasks) =>
       prevTasks.map((task) =>
         task._id === updatedTask._id ? updatedTask : task
@@ -102,6 +148,7 @@ const TasksPage = () => {
       updateSingleTask(res.task);
     } catch (error) {
       console.error("Error fetching task:", error);
+      toast.error("Failed to verify task");
     } finally {
       setProcessing(null);
     }
@@ -111,19 +158,26 @@ const TasksPage = () => {
     taskId: string,
     verificationData: string
   ) => {
-    window.open(verificationData, "_blank");
-    setProcessing(taskId);
+    try {
+      window.open(verificationData, "_blank");
+      setProcessing(taskId);
 
-    handleVisibilityAndUpdate(async () => {
-      try {
-        const res = await taskAPI.getTaskById(taskId);
-        updateSingleTask(res.task);
-      } catch (error) {
-        console.error("Error fetching task:", error);
-      } finally {
-        setProcessing(null);
-      }
-    });
+      handleVisibilityAndUpdate(async () => {
+        try {
+          const res = await taskAPI.getTaskById(taskId);
+          updateSingleTask(res.task);
+        } catch (error) {
+          console.error("Error fetching task:", error);
+          toast.error("Failed to verify task");
+        } finally {
+          setProcessing(null);
+        }
+      });
+    } catch (error) {
+      console.error("Error opening link:", error);
+      toast.error("Failed to open link");
+      setProcessing(null);
+    }
   };
 
   const handleActionVerification = async (
@@ -132,8 +186,8 @@ const TasksPage = () => {
     action: string,
     telegramId: string
   ) => {
-    if (action === "connect") {
-      try {
+    try {
+      if (action === "connect") {
         let address: string | null = walletAddress;
 
         // If not connected, trigger connection
@@ -145,24 +199,26 @@ const TasksPage = () => {
         const res = await taskAPI.connectWallet(taskId, action, address);
         updateSingleTask(res.task);
         toast.success("Wallet connected successfully!");
-      } catch (error) {
-        console.error("Wallet modal error", error);
-        toast.error("modal opened error");
-      }
-    } else {
-      window.open(verificationData, "_blank");
-      setProcessing(taskId);
+      } else {
+        window.open(verificationData, "_blank");
+        setProcessing(taskId);
 
-      handleVisibilityAndUpdate(async () => {
-        try {
-          const data = await taskAPI.verifyTask(taskId, action, telegramId);
-          updateSingleTask(data.task);
-        } catch (error) {
-          console.error("Error verifying task:", error);
-        } finally {
-          setProcessing(null);
-        }
-      });
+        handleVisibilityAndUpdate(async () => {
+          try {
+            const data = await taskAPI.verifyTask(taskId, action, telegramId);
+            updateSingleTask(data.task);
+          } catch (error) {
+            console.error("Error verifying task:", error);
+            toast.error("Failed to verify task");
+          } finally {
+            setProcessing(null);
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Action verification error:", error);
+      toast.error("Failed to complete action");
+      setProcessing(null);
     }
   };
 
@@ -182,8 +238,13 @@ const TasksPage = () => {
             : task
         )
       );
+
+      if (newStatus === "approved") {
+        toast.success("Task completed successfully!");
+      }
     } catch (error) {
       console.error("Error completing task:", error);
+      toast.error("Failed to complete task");
     }
   };
 
@@ -208,23 +269,18 @@ const TasksPage = () => {
             action,
             telegramId
           );
-        } else {
-          return null;
         }
       } else if (userStatus === "pending") {
         await handlePendingTask(taskId);
-      } else {
-        return null;
       }
     } catch (error) {
-      console.error(error);
-      setLoading(false);
+      console.error("Task click error:", error);
+      toast.error("An error occurred while processing the task");
     }
   };
 
   const getTaskCounts = (status: TaskCategory) => {
     if (status === "ingame") return tasks.length;
-    console.log();
     return tasks.filter((task) => task.taskType === status).length;
   };
 
@@ -238,6 +294,43 @@ const TasksPage = () => {
         return <Package className="h-4 w-4" />;
     }
   };
+
+  const handleRetry = () => {
+    setRetryCount(0);
+    setError(null);
+  };
+
+  // Show error state with retry option
+  if (error && !loading) {
+    return (
+      <AppLayout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] p-6">
+          <div className="text-center space-y-4">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+              <AlertCircle className="h-8 w-8 text-red-600" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold text-white">
+                Failed to Load Tasks
+              </h3>
+              <p className="text-sm text-gray-400 max-w-md">{error}</p>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleRetry} variant="default">
+                Try Again
+              </Button>
+              <Button
+                onClick={() => window.location.reload()}
+                variant="outline"
+              >
+                Refresh Page
+              </Button>
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -263,9 +356,20 @@ const TasksPage = () => {
                 className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                disabled={loading}
               />
             </div>
           </div>
+
+          {/* Show retry info if retrying */}
+          {loading && retryCount > 0 && (
+            <div className="flex items-center justify-center p-2 bg-blue-50 rounded-lg">
+              <Loader className="h-4 w-4 animate-spin mr-2" />
+              <span className="text-sm text-blue-700">
+                Retrying... ({retryCount}/{MAX_RETRIES})
+              </span>
+            </div>
+          )}
 
           {/* Tabs for task categories */}
           <Tabs
@@ -278,13 +382,14 @@ const TasksPage = () => {
                   key={category}
                   value={category}
                   className="flex items-center gap-0.5"
+                  disabled={loading}
                 >
                   {getTabIcon(category)}
                   <span className="capitalize font-bold text-md">
                     {category.replace("_", " ")}
                   </span>
                   <span className="ml-1 rounded-full px-0.5 font-semibold py-0.5 text-xs">
-                    {getTaskCounts(category)}
+                    {loading ? "..." : getTaskCounts(category)}
                   </span>
                 </TabsTrigger>
               ))}
@@ -307,8 +412,6 @@ const TasksPage = () => {
                 onTaskClick={handleTaskClick}
               />
             </TabsContent>
-
-            {/* <TaskList tasks={tasks} /> */}
           </Tabs>
         </div>
       </div>
@@ -319,7 +422,7 @@ const TasksPage = () => {
 type TaskListProps = {
   tasks: Task[];
   loading: boolean;
-  processing: string;
+  processing: string | null;
   onTaskClick: (
     id: string,
     userStatus: string,
@@ -337,10 +440,11 @@ const TaskList = ({
   onTaskClick,
 }: TaskListProps) => {
   const { user } = useAuth();
-  const userTelegramId = user?.user.telegramId;
+  const userTelegramId = user?.user?.telegramId;
+
   if (loading) {
     return (
-      <div className="grid grid-cols-1">
+      <div className="grid grid-cols-1 gap-4">
         {Array(6)
           .fill(0)
           .map((_, i) => (
@@ -349,8 +453,8 @@ const TaskList = ({
                 <div className="flex flex-row flex-nowrap gap-2.5 items-center justify-start">
                   <Skeleton className="h-10 w-10 rounded-[10px]" />
                   <div className="flex flex-col gap-1 items-start">
-                    <Skeleton className="h-10 w-32" />
-                    <Skeleton className="h-4 w-[100px]" />
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-4 w-24" />
                   </div>
                 </div>
                 <div className="block relative w-[80px] h-8">
@@ -378,17 +482,29 @@ const TaskList = ({
   }
 
   return (
-    <div className="grid grid-cols-1 mb-[80px]">
+    <div className="grid grid-cols-1 gap-4 mb-[80px]">
       {tasks?.map((task) => (
         <Card key={task._id} className="px-2 py-2">
           <CardHeader className="flex flex-row flex-nowrap justify-between items-center">
             <div className="flex flex-row flex-nowrap gap-2.5 items-center justify-start">
               <div>
                 {task?.icon ? (
-                  <img src={task.icon} className="w-10 h-10  rounded-[10px] " />
-                ) : (
-                  <span className="block relative h-10 w-10 bg-gray-400 rounded-[10px]"></span>
-                )}
+                  <img
+                    src={task.icon}
+                    className="w-10 h-10 rounded-[10px]"
+                    alt={task.title}
+                    onError={(e) => {
+                      // Fallback if image fails to load
+                      e.currentTarget.style.display = "none";
+                      e.currentTarget.nextElementSibling.style.display =
+                        "block";
+                    }}
+                  />
+                ) : null}
+                <span
+                  className="block relative h-10 w-10 bg-gray-400 rounded-[10px]"
+                  style={{ display: task?.icon ? "none" : "block" }}
+                ></span>
               </div>
               <div>
                 <div className="flex justify-between items-center">
@@ -401,7 +517,7 @@ const TaskList = ({
               </div>
             </div>
             <div>
-              <CardFooter>
+              <CardFooter className="p-0">
                 <Button
                   variant={
                     task.userStatus === "available" ? "default" : "outline"
@@ -411,6 +527,7 @@ const TaskList = ({
                       ? "w-full bg-[#041c31] text-white"
                       : "w-full"
                   }
+                  disabled={task._id === processing}
                   onClick={() =>
                     onTaskClick(
                       task._id,
@@ -423,7 +540,7 @@ const TaskList = ({
                   }
                 >
                   {task._id === processing ? (
-                    <Loader className="size-6 " />
+                    <Loader className="size-4 animate-spin" />
                   ) : task.userStatus === "available" ? (
                     "Start"
                   ) : task.userStatus === "pending" ? (

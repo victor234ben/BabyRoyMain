@@ -111,16 +111,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Call the API with the cleaned data
       const data = await authAPI.telegramOauth(requestData);
 
-      console.log("API Response received:", data);
-
       // Set user data from response
       if (data && data.user) {
         setUser(data.user);
-        console.log("User data set:", data.user);
       }
-
-      toast.success("Login successful!");
-
       // Return the result so LoginPage can access it
       return data;
     } catch (error) {
