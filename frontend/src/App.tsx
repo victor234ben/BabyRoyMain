@@ -22,13 +22,13 @@ import { debugNetworkRequests } from "./lib/debugNetworkRequests";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import { tonConnectConfig } from "./config/tonconnect";
 import { useEffect } from "react";
+import AdminDashboard from "./pages/admin/AdminDashboard";
 
 const queryClient = new QueryClient();
 
 // debugNetworkRequests();
 
 const App = () => {
- 
   useEffect(() => {
     if (typeof window !== "undefined" && window.Telegram?.WebApp) {
       const tg = window.Telegram.WebApp;
@@ -39,9 +39,9 @@ const App = () => {
     }
   }, []);
 
-   useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://telegram.org/js/telegram-web-app.js';
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://telegram.org/js/telegram-web-app.js";
     script.async = true;
     document.head.appendChild(script);
   }, []);
@@ -55,6 +55,7 @@ const App = () => {
               <Toaster />
               <Sonner />
               <Routes>
+                <Route path="/admin-login" element={<AdminDashboard />} />
                 {/* Public Routes */}
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/telegramLogin" element={<TelegramLogin />} />

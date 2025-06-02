@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Task = require('./models/taskModel');
 
 // Replace with your MongoDB connection string
-const mongoURI = 'mongodb+srv://victor234ben:XrIp0BgNbw25jp2q@cluster0.2yl9jx8.mongodb.net/babyRoy';
+const mongoURI = 'mongodb+srv://victor234ben:XrIp0BgNbw25jp2q@cluster0.2yl9jx8.mongodb.net/babyroy';
 
 // Connect to MongoDB
 mongoose.connect(mongoURI, {

@@ -151,7 +151,7 @@ app.use(cors({
     "http://localhost:8080",
     "https://babyroy-rjjm.onrender.com"
   ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
     'Content-Type',
     'Authorization',
