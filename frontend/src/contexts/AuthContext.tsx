@@ -1,3 +1,4 @@
+// 1. Updated AuthContext - Single source of truth
 import {
   createContext,
   useContext,
@@ -12,6 +13,7 @@ import { toast } from "sonner";
 type AuthContextType = {
   user: UserProfile | null;
   loading: boolean;
+  isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   telegramOauth: (
     telegramId: string,
@@ -37,19 +39,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Check if user is authenticated on mount
+  // Single authentication check on app initialization
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const isValid = await authAPI.validateToken();
 
         if (isValid) {
-          // Fetch user profile
+          // Fetch user profile only if token is valid
           const userData = await profileAPI.getProfile();
           setUser(userData);
+        } else {
+          setUser(null);
         }
       } catch (error) {
         console.error("Authentication error:", error);
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -64,7 +69,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const data = await authAPI.login({ email, password });
       setUser(data.user);
       toast.success("Login successful!");
-      navigate("/");
+
+      // Navigate to intended page or dashboard
+      const intendedPath = location.state?.from || "/dashboard";
+      navigate(intendedPath, { replace: true });
     } catch (error) {
       toast.error("Login failed. Please check your credentials.");
       throw error;
@@ -100,22 +108,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   ) => {
     setLoading(true);
     try {
-      // Build the request data object
       const requestData = {
-        telegramId: telegramId.toString(), // Ensure it's a string
+        telegramId: telegramId.toString(),
         first_name: first_name || "",
         last_name: last_name || "",
         username: username || "",
       };
 
-      // Call the API with the cleaned data
       const data = await authAPI.telegramOauth(requestData);
 
-      // Set user data from response
       if (data && data.user) {
         setUser(data.user);
+        const intendedPath = location.state?.from || "/dashboard";
+        navigate(intendedPath, { replace: true });
       }
-      // Return the result so LoginPage can access it
       return data;
     } catch (error) {
       console.error("Telegram OAuth error:", error);
@@ -137,11 +143,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(userData);
   };
 
+  const isAuthenticated = !!user;
+
   return (
     <AuthContext.Provider
       value={{
         user,
         loading,
+        isAuthenticated,
         login,
         register,
         logout,
