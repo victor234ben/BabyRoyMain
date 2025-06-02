@@ -305,7 +305,7 @@ const TasksPage = () => {
   if (error && !loading) {
     return (
       <AppLayout>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] p-6">
+        <div className="flex flex-col items-center justify-center min-h-[60vh] p-2.5">
           <div className="text-center space-y-4">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
               <AlertCircle className="h-8 w-8 text-red-600" />
@@ -335,7 +335,7 @@ const TasksPage = () => {
 
   return (
     <AppLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-2.5 space-y-6">
         <div className="">
           <h1 className="text-3xl font-bold mb-2 text-white">TASKS</h1>
           <div>

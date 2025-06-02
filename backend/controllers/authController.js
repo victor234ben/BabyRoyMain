@@ -115,9 +115,6 @@ const loginUser = async (req, res) => {
 // to do tier one, tier two 1-50 1000 point 50+ 5000points per referrals
 const telegramLoginAndSignup = async (req, res) => {
   const { telegramId, first_name, last_name, username } = req.body;
-
-  console.log("Telegram OAuth request (find user only):", { telegramId, first_name, last_name, username });
-
   try {
     // ONLY find existing user - no creation here
     const user = await User.findOne({ telegramId });

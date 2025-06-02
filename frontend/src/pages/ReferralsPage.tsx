@@ -89,7 +89,7 @@ const ReferralsPage = () => {
 
   return (
     <AppLayout>
-      <div className="p-6 space-y-6 pt-10">
+      <div className="p-2.5 space-y-6 pt-10">
         <div
           className={`friends-tab-con px-4 pb-24 transition-all duration-300`}
         >

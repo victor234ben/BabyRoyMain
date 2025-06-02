@@ -17,16 +17,12 @@ import ReferralsPage from "./pages/ReferralsPage";
 // import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 import LeaderBoardPage from "./pages/LeaderBoardPage";
-import TelegramLogin from "./pages/TelegramLogin";
-import { debugNetworkRequests } from "./lib/debugNetworkRequests";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import { tonConnectConfig } from "./config/tonconnect";
 import { useEffect } from "react";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 
 const queryClient = new QueryClient();
-
-// debugNetworkRequests();
 
 const App = () => {
   useEffect(() => {
@@ -48,7 +44,6 @@ const App = () => {
                 <Route path="/admin-login" element={<AdminDashboard />} />
                 {/* Public Routes */}
                 <Route path="/login" element={<LoginPage />} />
-                <Route path="/telegramLogin" element={<TelegramLogin />} />
                 <Route path="/register" element={<RegisterPage />} />
 
                 {/* Protected Routes */}
@@ -84,15 +79,6 @@ const App = () => {
                     </ProtectedRoute>
                   }
                 />
-                {/* <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              }
-            /> */}
-
                 {/* Not Found Route */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
