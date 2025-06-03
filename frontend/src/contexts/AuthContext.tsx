@@ -13,6 +13,7 @@ import { toast } from "sonner";
 type AuthContextType = {
   user: UserProfile | null;
   loading: boolean;
+  isAuth: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   telegramOauth: (
@@ -36,6 +37,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [isAuth, setIsAuth] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
@@ -62,6 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const data = await authAPI.sessionAuth({ sessionToken });
             if (data && data.user) {
               setUser(data.user);
+              setIsAuth(true);
               toast.success("Welcome back!");
               return; // Exit early on success
             }
@@ -78,6 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Fetch user profile only if token is valid
           const userData = await profileAPI.getProfile();
           setUser(userData);
+          setIsAuth(true);
         } else {
           setUser(null);
         }
@@ -148,6 +152,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (data && data.user) {
         setUser(data.user);
+        setIsAuth(true);
         const intendedPath = location.state?.from || "/dashboard";
         navigate(intendedPath, { replace: true });
       }
@@ -172,6 +177,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (data && data.user) {
         setUser(data.user);
+        setIsAuth(true);
         toast.success("Welcome back!");
         return data;
       }
@@ -203,6 +209,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user,
         loading,
         isAuthenticated,
+        isAuth,
         login,
         register,
         logout,

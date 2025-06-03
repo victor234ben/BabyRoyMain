@@ -2,9 +2,10 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader, PawPrint } from "lucide-react";
+import { toast } from "sonner";
 
 const LoginPage = () => {
-  const { telegramOauth, isAuthenticated } = useAuth();
+  const { telegramOauth, isAuthenticated, isAuth } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [tgUser, setTgUser] = useState(null);
   const [error, setError] = useState(null);
@@ -66,6 +67,7 @@ const LoginPage = () => {
 
   useEffect(() => {
     const initializeTelegramWebApp = async () => {
+      toast.info(isAuth);
       // Skip if already authenticated (session auth succeeded)
       if (isAuthenticated) {
         return;
