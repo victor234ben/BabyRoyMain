@@ -1,4 +1,5 @@
 
+const redisClient = require('../config/redisClient.js');
 const User = require('../models/userModel.js');
 const generateToken = require('../utils/generateToken');
 const generateReferralCode = require('../utils/referralCodeGenerator');
@@ -115,16 +116,23 @@ const loginUser = async (req, res) => {
 const sessionStore = new Map();
 
 // Function to get session data
-const getSessionData = (token) => {
-  const data = sessionStore.get(token);
-  if (!data) return null;
+const getSessionData = async (token) => {
+  const sessionString = await redisClient.get(`session:${token}`);
+  if (!sessionString) return null;
 
-  if (new Date() > data.expiresAt) {
-    sessionStore.delete(token);
+  const session = JSON.parse(sessionString);
+
+  // Optionally verify expiration (not strictly needed since Redis auto-expires)
+  if (new Date() > new Date(session.expiresAt)) {
+    await redisClient.del(`session:${token}`);
     return null;
   }
 
-  return data;
+  return session;
+};
+
+const deleteSessionToken = async (token) => {
+  await redisClient.del(`session:${token}`);
 };
 
 const sessionBasedAuth = async (req, res) => {
@@ -172,7 +180,7 @@ const sessionBasedAuth = async (req, res) => {
     generateToken(user._id, res);
 
     // Remove the session token as it's now consumed
-    sessionStore.delete(sessionToken);
+    deleteSessionToken()
 
     res.status(200).json({
       success: true,

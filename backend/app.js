@@ -23,6 +23,7 @@ const generateReferralCode = require('./utils/referralCodeGenerator');
 const { default: mongoose } = require('mongoose');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const redisClient = require('./config/redisClient');
 
 const token = process.env.TELEGRAM_TOKEN;
 const bot = new TelegramBot(token);
@@ -406,18 +407,15 @@ const generateSessionToken = (userData) => {
   return jwt.sign(payload, process.env.JWT_SECRET || 'your-secret-key');
 };
 
-
 const storeSessionToken = async (token, userData) => {
-  sessionStore.set(token, {
+  const expiresInSeconds = 15 * 60; // 15 minutes
+  const sessionData = {
     ...userData,
-    createdAt: new Date(),
-    expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
-  });
+    createdAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + expiresInSeconds * 1000).toISOString()
+  };
 
-  // Clean up expired tokens periodically
-  setTimeout(() => {
-    sessionStore.delete(token);
-  }, 15 * 60 * 1000);
+  await redisClient.setEx(`session:${token}`, expiresInSeconds, JSON.stringify(sessionData));
 };
 
 // Optimized user creation function with better error handling

@@ -30,6 +30,7 @@
     "mongoose": "^7.0.3",
     "morgan": "^1.10.0",
     "node-telegram-bot-api": "^0.66.0",
+    "redis": "^5.5.5",
     "uuid": "^9.0.0",
     "validator": "^13.9.0"
   },
