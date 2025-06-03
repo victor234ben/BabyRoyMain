@@ -3,6 +3,7 @@ const redisClient = require('../config/redisClient.js');
 const User = require('../models/userModel.js');
 const generateToken = require('../utils/generateToken');
 const generateReferralCode = require('../utils/referralCodeGenerator');
+const jwt = require('jsonwebtoken');
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
