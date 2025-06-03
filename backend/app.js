@@ -23,7 +23,6 @@ const generateReferralCode = require('./utils/referralCodeGenerator');
 const { default: mongoose } = require('mongoose');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const { sessionBasedAuth } = require('./controllers/authController');
 
 const token = process.env.TELEGRAM_TOKEN;
 const bot = new TelegramBot(token);
