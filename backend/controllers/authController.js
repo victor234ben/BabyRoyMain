@@ -149,42 +149,38 @@ const deleteSessionToken = async (token) => {
   }
 };
 
+// Fixed session-based authentication - should redirect to frontend instead of returning JSON
 const sessionBasedAuth = async (req, res) => {
   const sessionToken = req.query.session;
-  console.log("Session token received:", sessionToken);
+  console.log("🔍 [DEBUG] Session token received:", sessionToken);
 
   try {
     if (!sessionToken) {
-      return res.status(400).json({
-        success: false,
-        message: "Session token is required",
-        error: "MISSING_SESSION_TOKEN"
-      });
+      // Redirect to login with error instead of returning JSON
+      return res.redirect(`${process.env.FRONTEND_URL || 'https://babyroy-rjjm.onrender.com'}/?error=missing_session`);
     }
 
-    // Get session data from store (ADD AWAIT HERE)
+    // Get session data from store
     const sessionData = await getSessionData(sessionToken);
-    console.log("Session data retrieved:", sessionData);
+    console.log("🔍 [DEBUG] Session data retrieved:", sessionData);
 
     if (!sessionData) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid or expired session token",
-        error: "INVALID_SESSION_TOKEN"
-      });
+      // Redirect to login with error instead of returning JSON
+      return res.redirect(`${process.env.FRONTEND_URL || 'https://babyroy-rjjm.onrender.com'}/?error=invalid_session`);
     }
 
     // Find the user in database using the userId from session
-    console.log("Looking for user with ID:", sessionData.userId);
+    console.log("🔍 [DEBUG] Looking for user with ID:", sessionData.userId);
     const user = await User.findById(sessionData.userId);
-    console.log("User found:", user ? "Yes" : "No");
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-        error: "USER_NOT_FOUND"
-      });
+      // Try finding by telegramId as fallback
+      const userByTelegram = await User.findOne({ telegramId: sessionData.telegramId });
+      if (!userByTelegram) {
+        return res.redirect(`${process.env.FRONTEND_URL || 'https://babyroy-rjjm.onrender.com'}/?error=user_not_found`);
+      }
+      // Use the found user
+      user = userByTelegram;
     }
 
     // Update user's last active time
@@ -192,37 +188,38 @@ const sessionBasedAuth = async (req, res) => {
       $set: { lastActive: new Date() }
     });
 
-    console.log(`✅ Session-based authentication successful for user: ${user._id}`);
+    console.log(`✅ [DEBUG] Session-based authentication successful for user: ${user._id}`);
 
     // Generate JWT token for the session
-    generateToken(user._id, res);
+    const jwtToken = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '7d' }
+    );
 
-    // Remove the session token as it's now consumed (ADD TOKEN PARAMETER)
+    // Remove the session token as it's now consumed
     await deleteSessionToken(sessionToken);
 
-    res.status(200).json({
-      success: true,
-      user: {
-        _id: user._id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        username: user.username,
-        telegramId: user.telegramId,
-        referralCode: user.referralCode,
-        points: user.points,
-        totalEarned: user.totalEarned,
-      },
+    // Set JWT token as HTTP-only cookie
+    res.cookie('token', jwtToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
+    // Redirect to dashboard with success parameter
+    const redirectUrl = `${process.env.FRONTEND_URL || 'https://babyroy-rjjm.onrender.com'}/dashboard?auth=success`;
+
+    console.log(`✅ [DEBUG] Redirecting to: ${redirectUrl}`);
+    return res.redirect(redirectUrl);
+
   } catch (error) {
-    console.error("Error in session-based authentication:", error);
-    res.status(500).json({
-      success: false,
-      message: "Authentication failed",
-      error: error.message
-    });
+    console.error("❌ [DEBUG] Error in session-based authentication:", error);
+    return res.redirect(`${process.env.FRONTEND_URL || 'https://babyroy-rjjm.onrender.com'}/?error=auth_failed`);
   }
 };
+
 // to do tier one, tier two 1-50 1000 point 50+ 5000points per referrals
 // Update your existing telegramLoginAndSignup to handle both session and telegram auth
 const telegramLoginAndSignup = async (req, res) => {
