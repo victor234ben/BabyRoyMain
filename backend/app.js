@@ -209,7 +209,7 @@ app.post('/webhook', (req, res) => {
   }
 });
 
-// Optimized /start command with fast user creation
+// Optimized /start command with session token generation
 bot.onText(/\/start(.*)/, async (msg, match) => {
   const chatId = msg.chat.id;
   const userId = msg.from?.id;
@@ -232,7 +232,7 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
   });
 
   // Send immediate response to user while processing in background
-  const sendWelcomeMessage = async () => {
+  const sendWelcomeMessage = async (sessionToken) => {
     try {
       // Send the image first - ALWAYS send this
       await bot.sendPhoto(chatId, 'https://res.cloudinary.com/dtcbirvxc/image/upload/v1747334030/kvqmrisqgphhhlsx3u8u.png', {
@@ -241,8 +241,8 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
           'Welcome to BabyRoy! 🎉\nReady to start your adventure?'
       });
 
-      // Build the mini app URL
-      const miniAppUrl = 'https://babyroy-rjjm.onrender.com/';
+      // Build the mini app URL with session token
+      const miniAppUrl = `https://babyroy-rjjm.onrender.com/?session=${sessionToken}`;
 
       // Send message with mini app button - ALWAYS send this
       await bot.sendMessage(chatId, 'Tap below to launch the mini app:', {
@@ -262,12 +262,13 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
         },
       });
 
-      console.log(`✅ Welcome message sent to user ${userId}`);
+      console.log(`✅ Welcome message sent to user ${userId} with session token`);
     } catch (error) {
       console.error("❌ Error sending welcome message:", error);
 
       // Fallback message if image fails
       try {
+        const fallbackUrl = `https://babyroy-rjjm.onrender.com/?session=${sessionToken}`;
         await bot.sendMessage(chatId, `Welcome to BabyRoy! 🎉${referralCode ? '\nYou were invited by a friend! Get ready for bonus rewards!' : ''}\n\nTap below to launch the mini app:`, {
           reply_markup: {
             keyboard: [
@@ -275,7 +276,7 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
                 {
                   text: referralCode ? '🎁 Open BabyRoy Mini App (Bonus!)' : '🚀 Open BabyRoy Mini App',
                   web_app: {
-                    url: 'https://babyroy-rjjm.onrender.com/',
+                    url: fallbackUrl,
                   },
                 },
               ],
@@ -291,7 +292,7 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
     }
   };
 
-  // Process user creation in parallel
+  // Process user creation and generate session token
   const processUserCreation = async () => {
     try {
       const userResult = await handleUserCreation({
@@ -304,10 +305,30 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
 
       console.log("✅ User creation/login result:", userResult);
 
+      // Generate session token for this user
+      const sessionToken = generateSessionToken({
+        userId: userResult.user._id,
+        telegramId: userId,
+        first_name,
+        last_name,
+        username
+      });
+
+      // Store session token temporarily (you can use Redis or in-memory store)
+      await storeSessionToken(sessionToken, {
+        userId: userResult.user._id,
+        telegramId: userId,
+        first_name,
+        last_name,
+        username,
+        userExists: true
+      });
+
       // Send referral bonus message if applicable
       if (referralCode && userResult.isNewUser && userResult.referralApplied) {
         setTimeout(async () => {
           try {
+            const bonusUrl = `https://babyroy-rjjm.onrender.com/?session=${sessionToken}`;
             await bot.sendMessage(chatId, '🎁 Referral bonus has been credited to your account!', {
               reply_markup: {
                 inline_keyboard: [
@@ -315,7 +336,7 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
                     {
                       text: '🚀 Launch App & Check Balance',
                       web_app: {
-                        url: 'https://babyroy-rjjm.onrender.com/',
+                        url: bonusUrl,
                       },
                     },
                   ],
@@ -329,27 +350,22 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
         }, 2000);
       }
 
-      // Log successful referral
-      if (referralCode && userResult.referralApplied) {
-        console.log(`✅ Referral bonus applied: User ${userId} with code ${referralCode}`);
-      }
+      return sessionToken;
 
     } catch (error) {
       console.error("❌ Error in user creation process:", error);
-      // Don't throw - we already sent welcome message
+      throw error;
     }
   };
 
-  // Execute both processes - ALWAYS send welcome message
+  // Execute both processes
   try {
-    await Promise.all([
-      sendWelcomeMessage(),
-      processUserCreation()
-    ]);
+    const sessionToken = await processUserCreation();
+    await sendWelcomeMessage(sessionToken);
   } catch (error) {
     console.error("❌ Error in /start command processing:", error);
 
-    // If everything fails, send a basic message at least
+    // If user creation fails, still try to send a basic message
     try {
       await bot.sendMessage(chatId, `Welcome to BabyRoy! 🎉\n\nTap below to launch the mini app:`, {
         reply_markup: {
@@ -372,6 +388,38 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
     }
   }
 });
+
+// Generate session token function
+const generateSessionToken = (userData) => {
+  const payload = {
+    userId: userData.userId,
+    telegramId: userData.telegramId,
+    first_name: userData.first_name,
+    last_name: userData.last_name,
+    username: userData.username,
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + (15 * 60), // 15 minutes expiry
+  };
+
+  return jwt.sign(payload, process.env.JWT_SECRET || 'your-secret-key');
+};
+
+// Simple in-memory store for session tokens (use Redis in production)
+const sessionStore = new Map();
+
+const storeSessionToken = async (token, userData) => {
+  sessionStore.set(token, {
+    ...userData,
+    createdAt: new Date(),
+    expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
+  });
+
+  // Clean up expired tokens periodically
+  setTimeout(() => {
+    sessionStore.delete(token);
+  }, 15 * 60 * 1000);
+};
+
 
 // Optimized user creation function with better error handling
 const handleUserCreation = async ({ telegramId, first_name, last_name, username, referralCode }) => {

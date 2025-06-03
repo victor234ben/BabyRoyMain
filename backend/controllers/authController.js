@@ -112,10 +112,110 @@ const loginUser = async (req, res) => {
   }
 };
 
-// to do tier one, tier two 1-50 1000 point 50+ 5000points per referrals
-const telegramLoginAndSignup = async (req, res) => {
-  const { telegramId, first_name, last_name, username } = req.body;
+// Function to get session data
+const getSessionData = (token) => {
+  const data = sessionStore.get(token);
+  if (!data) return null;
+
+  if (new Date() > data.expiresAt) {
+    sessionStore.delete(token);
+    return null;
+  }
+
+  return data;
+};
+
+const sessionBasedAuth = async (req, res) => {
+  const { sessionToken } = req.body;
+
   try {
+    if (!sessionToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Session token is required",
+        error: "MISSING_SESSION_TOKEN"
+      });
+    }
+
+    // Get session data from store
+    const sessionData = getSessionData(sessionToken);
+
+    if (!sessionData) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired session token",
+        error: "INVALID_SESSION_TOKEN"
+      });
+    }
+
+    // Find the user in database
+    const user = await User.findById(sessionData.userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+        error: "USER_NOT_FOUND"
+      });
+    }
+
+    // Update user's last active time
+    await User.findByIdAndUpdate(user._id, {
+      $set: { lastActive: new Date() }
+    });
+
+    console.log(`✅ Session-based authentication successful for user: ${user._id}`);
+
+    // Generate JWT token for the session
+    generateToken(user._id, res);
+
+    // Remove the session token as it's now consumed
+    sessionStore.delete(sessionToken);
+
+    res.status(200).json({
+      success: true,
+      user: {
+        _id: user._id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        username: user.username,
+        telegramId: user.telegramId,
+        referralCode: user.referralCode,
+        points: user.points,
+        totalEarned: user.totalEarned,
+      },
+    });
+
+  } catch (error) {
+    console.error("Error in session-based authentication:", error);
+    res.status(500).json({
+      success: false,
+      message: "Authentication failed",
+      error: error.message
+    });
+  }
+};
+
+// to do tier one, tier two 1-50 1000 point 50+ 5000points per referrals
+// Update your existing telegramLoginAndSignup to handle both session and telegram auth
+const telegramLoginAndSignup = async (req, res) => {
+  const { telegramId, first_name, last_name, username, sessionToken } = req.body;
+
+  try {
+    // If session token is provided, use session-based auth
+    if (sessionToken) {
+      return await sessionBasedAuth(req, res);
+    }
+
+    // Original telegram-based authentication
+    if (!telegramId) {
+      return res.status(400).json({
+        success: false,
+        message: "Telegram ID or session token is required",
+        error: "MISSING_CREDENTIALS"
+      });
+    }
+
     // ONLY find existing user - no creation here
     const user = await User.findOne({ telegramId });
 

@@ -21,6 +21,7 @@ type AuthContextType = {
     last_name: string,
     username: string
   ) => Promise<void>;
+  sessionAuth: (sessionToken: string) => Promise<void>;
   register: (
     name: string,
     email: string,
@@ -132,6 +133,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const sessionAuth = async (sessionToken: string) => {
+    setLoading(true);
+    try {
+      const requestData = {
+        sessionToken: sessionToken,
+      };
+
+      const data = await authAPI.sessionAuth(requestData);
+
+      if (data && data.user) {
+        setUser(data.user);
+        toast.success("Welcome back!");
+        return data;
+      }
+    } catch (error) {
+      console.error("Session authentication error:", error);
+      toast.error("Session expired. Please try again.");
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = () => {
     authAPI.logout();
     setUser(null);
@@ -156,6 +180,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logout,
         updateUserData,
         telegramOauth,
+        sessionAuth,
       }}
     >
       {children}

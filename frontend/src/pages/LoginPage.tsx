@@ -4,19 +4,55 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Loader, PawPrint } from "lucide-react";
 
 const LoginPage = () => {
-  const { telegramOauth } = useAuth();
+  const { telegramOauth, sessionAuth } = useAuth(); // Add sessionAuth to your context
   const [isLoading, setIsLoading] = useState(true);
   const [tgUser, setTgUser] = useState(null);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [initAttempt, setInitAttempt] = useState(0);
+  const [sessionToken, setSessionToken] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const from = (location.state as any)?.from || "/dashboard";
   const MAX_INIT_ATTEMPTS = 10;
-  const INIT_RETRY_DELAY = 200; // Start with 200ms, will increase exponentially
+  const INIT_RETRY_DELAY = 200;
+
+  // Check for session token in URL parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionParam = urlParams.get("session");
+    if (sessionParam) {
+      setSessionToken(sessionParam);
+      console.log("Session token found in URL:", sessionParam);
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  // Try session authentication first if token is available
+  useEffect(() => {
+    const trySessionAuth = async () => {
+      if (!sessionToken) return;
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        console.log("Attempting session-based authentication...");
+
+        await sessionAuth(sessionToken);
+        navigate(from, { replace: true });
+        return; // Success, exit early
+      } catch (error) {
+        console.error("Session authentication failed:", error);
+        // Don't set error here, fall back to telegram auth
+        setSessionToken(null); // Clear invalid session token
+      }
+    };
+
+    trySessionAuth();
+  }, [sessionToken, sessionAuth, from, navigate]);
 
   const checkTelegramWebApp = useCallback(() => {
     return new Promise((resolve, reject) => {
@@ -59,6 +95,14 @@ const LoginPage = () => {
 
   useEffect(() => {
     const initializeTelegramWebApp = async () => {
+      // Skip telegram initialization if we have a valid session token
+      if (sessionToken) {
+        console.log(
+          "Session token available, skipping Telegram WebApp initialization"
+        );
+        return;
+      }
+
       try {
         setInitAttempt((prev) => prev + 1);
 
@@ -90,12 +134,15 @@ const LoginPage = () => {
       }
     };
 
-    initializeTelegramWebApp();
-  }, [checkTelegramWebApp, retryCount]);
+    // Only initialize telegram if no session token
+    if (!sessionToken) {
+      initializeTelegramWebApp();
+    }
+  }, [checkTelegramWebApp, retryCount, sessionToken]);
 
   useEffect(() => {
     const authenticateTelegramUser = async () => {
-      if (!tgUser) return;
+      if (!tgUser || sessionToken) return; // Skip if session auth is being used
 
       try {
         setIsLoading(true);
@@ -123,13 +170,14 @@ const LoginPage = () => {
     };
 
     authenticateTelegramUser();
-  }, [tgUser, telegramOauth, from, navigate]);
+  }, [tgUser, telegramOauth, from, navigate, sessionToken]);
 
   const handleRetry = () => {
     setRetryCount((prev) => prev + 1);
     setError(null);
     setIsLoading(true);
     setInitAttempt(0);
+    setSessionToken(null); // Clear session token on retry
   };
 
   const handleRefresh = () => {
@@ -139,6 +187,7 @@ const LoginPage = () => {
   // Loading state
   if (isLoading) {
     const getLoadingMessage = () => {
+      if (sessionToken) return "Authenticating with session...";
       if (initAttempt <= 1) return "Connecting to BabyRoy...";
       if (initAttempt <= 3) return "Initializing Telegram connection...";
       if (initAttempt <= 6) return "Please wait, still connecting...";
@@ -155,7 +204,7 @@ const LoginPage = () => {
           <p className="text-center text-paws-primary font-medium">
             {getLoadingMessage()}
           </p>
-          {initAttempt > 3 && (
+          {!sessionToken && initAttempt > 3 && (
             <div className="text-center space-y-2">
               <p className="text-paws-primary/70 text-sm">
                 Attempt {initAttempt} of {MAX_INIT_ATTEMPTS}
