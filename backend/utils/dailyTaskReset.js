@@ -39,7 +39,7 @@ const resetDailyTasks = async (userId) => {
           },
           {
             $set: {
-              status: 'incomplete', // or 'incomplete' - whatever your initial status is
+              status: 'available', // or 'incomplete' - whatever your initial status is
               completedAt: null,
               submissionData: '',
               // Keep pointsAwarded for history
@@ -135,7 +135,7 @@ const resetDailyTasksForUser = async (userId) => {
         },
         {
           $set: {
-            status: 'incomplete', // or 'incomplete' - whatever your initial status is
+            status: 'available', // or 'incomplete' - whatever your initial status is
             completedAt: null,
             submissionData: '',
             // Keep pointsAwarded for history

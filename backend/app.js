@@ -30,6 +30,20 @@ const bot = new TelegramBot(token);
 const app = express();
 app.set('trust proxy', 1);
 
+// Test Redis connection
+const testRedis = async () => {
+  try {
+    await redisClient.set('test', 'value');
+    const result = await redisClient.get('test');
+    console.log('Redis test result:', result);
+    await redisClient.del('test');
+  } catch (error) {
+    console.error('Redis test failed:', error);
+  }
+};
+
+testRedis();
+
 // Security middleware
 app.use(
   helmet.contentSecurityPolicy({
@@ -407,17 +421,34 @@ const generateSessionToken = (userData) => {
   return jwt.sign(payload, process.env.JWT_SECRET || 'your-secret-key');
 };
 
+
 const storeSessionToken = async (token, userData) => {
-  const expiresInSeconds = 15 * 60; // 15 minutes
-  const sessionData = {
-    ...userData,
-    createdAt: new Date().toISOString(),
-    expiresAt: new Date(Date.now() + expiresInSeconds * 1000).toISOString()
-  };
+  try {
+    const expiresInSeconds = 15 * 60; // 15 minutes
+    const sessionData = {
+      ...userData,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + expiresInSeconds * 1000).toISOString()
+    };
 
-  await redisClient.setEx(`session:${token}`, expiresInSeconds, JSON.stringify(sessionData));
+    console.log(`📝 Storing session token: ${token}`);
+    console.log(`📝 Session data:`, JSON.stringify(sessionData, null, 2));
+    
+    await redisClient.setEx(`session:${token}`, expiresInSeconds, JSON.stringify(sessionData));
+    
+    // Verify the token was stored
+    const verification = await redisClient.get(`session:${token}`);
+    if (verification) {
+      console.log(`✅ Session token stored successfully in Redis`);
+    } else {
+      console.log(`❌ Failed to store session token in Redis`);
+    }
+    
+  } catch (error) {
+    console.error(`❌ Error storing session token:`, error);
+    throw error;
+  }
 };
-
 // Optimized user creation function with better error handling
 const handleUserCreation = async ({ telegramId, first_name, last_name, username, referralCode }) => {
   console.log("🔄 Creating/finding user with referral code:", referralCode);

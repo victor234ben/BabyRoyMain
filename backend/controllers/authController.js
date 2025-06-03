@@ -112,32 +112,47 @@ const loginUser = async (req, res) => {
     });
   }
 };
-// Simple in-memory store for session tokens (use Redis in production)
-const sessionStore = new Map();
 
 // Function to get session data
 const getSessionData = async (token) => {
-  const sessionString = await redisClient.get(`session:${token}`);
-  if (!sessionString) return null;
+  try {
+    console.log(`🔍 Looking for session: session:${token}`);
 
-  const session = JSON.parse(sessionString);
+    const sessionString = await redisClient.get(`session:${token}`);
+    console.log(`🔍 Redis response:`, sessionString ? "Found" : "Not found");
 
-  // Optionally verify expiration (not strictly needed since Redis auto-expires)
-  if (new Date() > new Date(session.expiresAt)) {
-    await redisClient.del(`session:${token}`);
+    if (!sessionString) return null;
+
+    const session = JSON.parse(sessionString);
+    console.log(`🔍 Parsed session data:`, session);
+
+    // Optionally verify expiration (not strictly needed since Redis auto-expires)
+    if (new Date() > new Date(session.expiresAt)) {
+      console.log(`⏰ Session expired, deleting...`);
+      await redisClient.del(`session:${token}`);
+      return null;
+    }
+
+    return session;
+  } catch (error) {
+    console.error(`❌ Error getting session data:`, error);
     return null;
   }
-
-  return session;
 };
 
 const deleteSessionToken = async (token) => {
-  await redisClient.del(`session:${token}`);
+  try {
+    await redisClient.del(`session:${token}`);
+    console.log(`Session token deleted: ${token}`);
+  } catch (error) {
+    console.error("Error deleting session token:", error);
+  }
 };
 
 const sessionBasedAuth = async (req, res) => {
   const sessionToken = req.query.session;
-  console.log(sessionToken)
+  console.log("Session token received:", sessionToken);
+
   try {
     if (!sessionToken) {
       return res.status(400).json({
@@ -147,8 +162,9 @@ const sessionBasedAuth = async (req, res) => {
       });
     }
 
-    // Get session data from store
-    const sessionData = getSessionData(sessionToken);
+    // Get session data from store (ADD AWAIT HERE)
+    const sessionData = await getSessionData(sessionToken);
+    console.log("Session data retrieved:", sessionData);
 
     if (!sessionData) {
       return res.status(401).json({
@@ -158,8 +174,10 @@ const sessionBasedAuth = async (req, res) => {
       });
     }
 
-    // Find the user in database
+    // Find the user in database using the userId from session
+    console.log("Looking for user with ID:", sessionData.userId);
     const user = await User.findById(sessionData.userId);
+    console.log("User found:", user ? "Yes" : "No");
 
     if (!user) {
       return res.status(404).json({
@@ -179,8 +197,8 @@ const sessionBasedAuth = async (req, res) => {
     // Generate JWT token for the session
     generateToken(user._id, res);
 
-    // Remove the session token as it's now consumed
-    deleteSessionToken()
+    // Remove the session token as it's now consumed (ADD TOKEN PARAMETER)
+    await deleteSessionToken(sessionToken);
 
     res.status(200).json({
       success: true,
@@ -205,7 +223,6 @@ const sessionBasedAuth = async (req, res) => {
     });
   }
 };
-
 // to do tier one, tier two 1-50 1000 point 50+ 5000points per referrals
 // Update your existing telegramLoginAndSignup to handle both session and telegram auth
 const telegramLoginAndSignup = async (req, res) => {

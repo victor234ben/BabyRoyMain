@@ -36,9 +36,8 @@ const TasksPage = () => {
   const [activeTab, setActiveTab] = useState<TaskCategory>("ingame");
   const [retryCount, setRetryCount] = useState(0);
   const { user } = useAuth();
-  // can call disconnet wallet from here. 
-  const { connectWallet, isConnected, walletAddress } =
-    useWalletConnection();
+  // can call disconnet wallet from here.
+  const { connectWallet, isConnected, walletAddress } = useWalletConnection();
 
   const MAX_RETRIES = 3;
   const RETRY_DELAY = 1000;
