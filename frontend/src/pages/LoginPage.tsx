@@ -4,13 +4,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Loader, PawPrint } from "lucide-react";
 
 const LoginPage = () => {
-  const { telegramOauth, sessionAuth } = useAuth(); // Add sessionAuth to your context
+  const { telegramOauth, isAuthenticated } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [tgUser, setTgUser] = useState(null);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [initAttempt, setInitAttempt] = useState(0);
-  const [sessionToken, setSessionToken] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -19,40 +18,12 @@ const LoginPage = () => {
   const MAX_INIT_ATTEMPTS = 10;
   const INIT_RETRY_DELAY = 200;
 
-  // Check for session token in URL parameters
+  // Redirect if already authenticated (handles session auth success)
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const sessionParam = urlParams.get("session");
-    if (sessionParam) {
-      setSessionToken(sessionParam);
-      console.log("Session token found in URL:", sessionParam);
-      // Clean URL
-      window.history.replaceState({}, document.title, window.location.pathname);
+    if (isAuthenticated) {
+      navigate(from, { replace: true });
     }
-  }, []);
-
-  // Try session authentication first if token is available
-  useEffect(() => {
-    const trySessionAuth = async () => {
-      if (!sessionToken) return;
-
-      try {
-        setIsLoading(true);
-        setError(null);
-        console.log("Attempting session-based authentication...");
-
-        await sessionAuth(sessionToken);
-        navigate(from, { replace: true });
-        return; // Success, exit early
-      } catch (error) {
-        console.error("Session authentication failed:", error);
-        // Don't set error here, fall back to telegram auth
-        setSessionToken(null); // Clear invalid session token
-      }
-    };
-
-    trySessionAuth();
-  }, [sessionToken, sessionAuth, from, navigate]);
+  }, [isAuthenticated, navigate, from]);
 
   const checkTelegramWebApp = useCallback(() => {
     return new Promise((resolve, reject) => {
@@ -95,11 +66,8 @@ const LoginPage = () => {
 
   useEffect(() => {
     const initializeTelegramWebApp = async () => {
-      // Skip telegram initialization if we have a valid session token
-      if (sessionToken) {
-        console.log(
-          "Session token available, skipping Telegram WebApp initialization"
-        );
+      // Skip if already authenticated (session auth succeeded)
+      if (isAuthenticated) {
         return;
       }
 
@@ -134,15 +102,12 @@ const LoginPage = () => {
       }
     };
 
-    // Only initialize telegram if no session token
-    if (!sessionToken) {
-      initializeTelegramWebApp();
-    }
-  }, [checkTelegramWebApp, retryCount, sessionToken]);
+    initializeTelegramWebApp();
+  }, [checkTelegramWebApp, retryCount, isAuthenticated]);
 
   useEffect(() => {
     const authenticateTelegramUser = async () => {
-      if (!tgUser || sessionToken) return; // Skip if session auth is being used
+      if (!tgUser || isAuthenticated) return;
 
       try {
         setIsLoading(true);
@@ -161,7 +126,7 @@ const LoginPage = () => {
         });
 
         await telegramOauth(telegramId, first_name, last_name, username);
-        navigate(from, { replace: true });
+        // Navigation is handled in the auth context
       } catch (error) {
         console.error("Telegram OAuth failed:", error);
         setError(error.message || "Authentication failed. Please try again.");
@@ -170,24 +135,27 @@ const LoginPage = () => {
     };
 
     authenticateTelegramUser();
-  }, [tgUser, telegramOauth, from, navigate, sessionToken]);
+  }, [tgUser, telegramOauth, isAuthenticated]);
 
   const handleRetry = () => {
     setRetryCount((prev) => prev + 1);
     setError(null);
     setIsLoading(true);
     setInitAttempt(0);
-    setSessionToken(null); // Clear session token on retry
   };
 
   const handleRefresh = () => {
     window.location.reload();
   };
 
+  // Don't show anything if already authenticated (prevents flash)
+  if (isAuthenticated) {
+    return null;
+  }
+
   // Loading state
   if (isLoading) {
     const getLoadingMessage = () => {
-      if (sessionToken) return "Authenticating with session...";
       if (initAttempt <= 1) return "Connecting to BabyRoy...";
       if (initAttempt <= 3) return "Initializing Telegram connection...";
       if (initAttempt <= 6) return "Please wait, still connecting...";
@@ -204,7 +172,7 @@ const LoginPage = () => {
           <p className="text-center text-paws-primary font-medium">
             {getLoadingMessage()}
           </p>
-          {!sessionToken && initAttempt > 3 && (
+          {initAttempt > 3 && (
             <div className="text-center space-y-2">
               <p className="text-paws-primary/70 text-sm">
                 Attempt {initAttempt} of {MAX_INIT_ATTEMPTS}

@@ -1,4 +1,4 @@
-// 1. Updated AuthContext - Single source of truth
+// Updated AuthContext - Handles session tokens from URL
 import {
   createContext,
   useContext,
@@ -44,6 +44,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // First, check for session token in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionToken = urlParams.get("session");
+
+        if (sessionToken) {
+          console.log("Session token found in URL, attempting session auth...");
+
+          // Clean URL immediately
+          window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname
+          );
+
+          try {
+            const data = await authAPI.sessionAuth({ sessionToken });
+            if (data && data.user) {
+              setUser(data.user);
+              toast.success("Welcome back!");
+              return; // Exit early on success
+            }
+          } catch (error) {
+            console.error("Session authentication failed:", error);
+            // Continue to regular token validation
+          }
+        }
+
+        // Fall back to regular token validation
         const isValid = await authAPI.validateToken();
 
         if (isValid) {
@@ -62,7 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     checkAuth();
-  }, []);
+  }, []); // Remove location dependency to avoid re-runs
 
   const login = async (email: string, password: string) => {
     setLoading(true);
