@@ -406,8 +406,6 @@ const generateSessionToken = (userData) => {
   return jwt.sign(payload, process.env.JWT_SECRET || 'your-secret-key');
 };
 
-// Simple in-memory store for session tokens (use Redis in production)
-const sessionStore = new Map();
 
 const storeSessionToken = async (token, userData) => {
   sessionStore.set(token, {

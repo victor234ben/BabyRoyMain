@@ -111,6 +111,8 @@ const loginUser = async (req, res) => {
     });
   }
 };
+// Simple in-memory store for session tokens (use Redis in production)
+const sessionStore = new Map();
 
 // Function to get session data
 const getSessionData = (token) => {
@@ -126,8 +128,8 @@ const getSessionData = (token) => {
 };
 
 const sessionBasedAuth = async (req, res) => {
-  const { sessionToken } = req.body;
-
+  const sessionToken = req.query.session;
+  console.log(sessionToken)
   try {
     if (!sessionToken) {
       return res.status(400).json({
