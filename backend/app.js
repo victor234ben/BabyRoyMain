@@ -23,6 +23,7 @@ const generateReferralCode = require('./utils/referralCodeGenerator');
 const { default: mongoose } = require('mongoose');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { sessionBasedAuth } = require('./controllers/authController');
 
 const token = process.env.TELEGRAM_TOKEN;
 const bot = new TelegramBot(token);
@@ -244,7 +245,7 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
       });
 
       // Build the mini app URL with session token
-      const miniAppUrl = `https://babyroy-rjjm.onrender.com/?session=${sessionToken}`;
+      const miniAppUrl = `https://babyroy-rjjm.onrender.com/api/auth/verifysession?session=${sessionToken}`;
 
       // Send message with mini app button - ALWAYS send this
       await bot.sendMessage(chatId, 'Tap below to launch the mini app:', {
@@ -270,7 +271,7 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
 
       // Fallback message if image fails
       try {
-        const fallbackUrl = `https://babyroy-rjjm.onrender.com/?session=${sessionToken}`;
+        const fallbackUrl = `https://babyroy-rjjm.onrender.com/api/auth/verifysession?session=${sessionToken}`;
         await bot.sendMessage(chatId, `Welcome to BabyRoy! 🎉${referralCode ? '\nYou were invited by a friend! Get ready for bonus rewards!' : ''}\n\nTap below to launch the mini app:`, {
           reply_markup: {
             keyboard: [
@@ -330,7 +331,7 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
       if (referralCode && userResult.isNewUser && userResult.referralApplied) {
         setTimeout(async () => {
           try {
-            const bonusUrl = `https://babyroy-rjjm.onrender.com/?session=${sessionToken}`;
+            const bonusUrl = `https://babyroy-rjjm.onrender.com/api/auth/verifysession?session=${sessionToken}`;
             await bot.sendMessage(chatId, '🎁 Referral bonus has been credited to your account!', {
               reply_markup: {
                 inline_keyboard: [

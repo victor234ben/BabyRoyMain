@@ -277,4 +277,4 @@ const validateUser = (req, res) => {
 }
 
 
-module.exports = { registerUser, loginUser, validateUser, telegramLoginAndSignup };
+module.exports = { registerUser, loginUser, validateUser, telegramLoginAndSignup, sessionBasedAuth };
