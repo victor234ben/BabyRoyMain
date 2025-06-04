@@ -30,22 +30,11 @@ const resetDailyTasks = async (userId) => {
 
       const dailyTaskIds = dailyTasks.map(task => task._id);
 
-      // Reset only daily task completions status (keep records for points history)
       if (dailyTaskIds.length > 0) {
-        await TaskCompletion.updateMany(
-          {
-            user: userId,
-            task: { $in: dailyTaskIds } // Only update daily tasks
-          },
-          {
-            $set: {
-              status: 'available', // or 'incomplete' - whatever your initial status is
-              completedAt: null,
-              submissionData: '',
-              // Keep pointsAwarded for history
-            }
-          }
-        );
+        await TaskCompletion.deleteMany({
+          user: userId,
+          task: { $in: dailyTaskIds }
+        });
       }
 
       await user.save();
@@ -142,6 +131,11 @@ const resetDailyTasksForUser = async (userId) => {
           }
         }
       );
+    } if (dailyTaskIds.length > 0) {
+      await TaskCompletion.deleteMany({
+        user: userId,
+        task: { $in: dailyTaskIds }
+      });
     }
 
     await user.save();
