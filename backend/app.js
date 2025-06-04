@@ -24,6 +24,7 @@ const { default: mongoose } = require('mongoose');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const redisClient = require('./config/redisClient');
+// const { testRedis } = require('./utils/testRedis');
 
 const token = process.env.TELEGRAM_TOKEN;
 const bot = new TelegramBot(token);
@@ -31,18 +32,9 @@ const app = express();
 app.set('trust proxy', 1);
 
 // Test Redis connection
-const testRedis = async () => {
-  try {
-    await redisClient.set('test', 'value');
-    const result = await redisClient.get('test');
-    console.log('Redis test result:', result);
-    await redisClient.del('test');
-  } catch (error) {
-    console.error('Redis test failed:', error);
-  }
-};
-
-testRedis();
+// testRedis();
+//setting webhook url
+setWebhook()
 
 // Security middleware
 app.use(
@@ -197,9 +189,6 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-//setting webhook url
-setWebhook()
-
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -210,7 +199,7 @@ app.use('/api', verifyRoutes)
 
 // Webhook endpoint
 app.post('/webhook', (req, res) => {
-  console.log('Webhook received:', JSON.stringify(req.body, null, 2));
+  // console.log('Webhook received:', JSON.stringify(req.body, null, 2));
 
   if (!req.body) {
     console.log('Empty request body');
@@ -238,17 +227,19 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
   // Extract referral code if present (format: /start 3343545)
   const referralCode = startParam || null;
 
-  console.log("Start command received:", {
-    chatId,
-    startParam,
-    referralCode,
-    userId,
-    username,
-    first_name,
-    last_name
-  });
+  // console.log("Start command received:", {
+  //   chatId,
+  //   startParam,
+  //   referralCode,
+  //   userId,
+  //   username,
+  //   first_name,
+  //   last_name
+  // });
 
   // Send immediate response to user while processing in background
+
+
   const sendWelcomeMessage = async (sessionToken) => {
     try {
       // Send the image first - ALWAYS send this
@@ -418,7 +409,7 @@ const generateSessionToken = (userData) => {
     exp: Math.floor(Date.now() / 1000) + (15 * 60), // 15 minutes expiry
   };
 
-  return jwt.sign(payload, process.env.JWT_SECRET || 'your-secret-key');
+  return jwt.sign(payload, process.env.JWT_SECRET);
 };
 
 
@@ -433,9 +424,9 @@ const storeSessionToken = async (token, userData) => {
 
     console.log(`📝 Storing session token: ${token}`);
     console.log(`📝 Session data:`, JSON.stringify(sessionData, null, 2));
-    
+
     await redisClient.setEx(`session:${token}`, expiresInSeconds, JSON.stringify(sessionData));
-    
+
     // Verify the token was stored
     const verification = await redisClient.get(`session:${token}`);
     if (verification) {
@@ -443,7 +434,7 @@ const storeSessionToken = async (token, userData) => {
     } else {
       console.log(`❌ Failed to store session token in Redis`);
     }
-    
+
   } catch (error) {
     console.error(`❌ Error storing session token:`, error);
     throw error;
@@ -451,7 +442,7 @@ const storeSessionToken = async (token, userData) => {
 };
 // Optimized user creation function with better error handling
 const handleUserCreation = async ({ telegramId, first_name, last_name, username, referralCode }) => {
-  console.log("🔄 Creating/finding user with referral code:", referralCode);
+  // console.log("🔄 Creating/finding user with referral code:", referralCode);
 
   try {
     // Use a transaction for atomic operations
@@ -464,7 +455,7 @@ const handleUserCreation = async ({ telegramId, first_name, last_name, username,
       const isNewUser = !existingUser;
 
       if (existingUser) {
-        console.log("ℹ️ User already exists:", existingUser._id);
+        // console.log("ℹ️ User already exists:", existingUser._id);
 
         // Update existing user info
         const updatedUser = await User.findOneAndUpdate(
@@ -505,9 +496,9 @@ const handleUserCreation = async ({ telegramId, first_name, last_name, username,
         if (referrer) {
           referredBy = referrer._id;
           referralApplied = true;
-          console.log("✅ Valid referrer found:", referrer._id);
+          // console.log("✅ Valid referrer found:", referrer._id);
         } else {
-          console.log("❌ Invalid referral code provided:", referralCode);
+          // console.log("❌ Invalid referral code provided:", referralCode);
         }
       }
 
@@ -587,14 +578,14 @@ const handleUserCreation = async ({ telegramId, first_name, last_name, username,
 };
 
 // Keep your existing message handler for debugging
-bot.on('message', (msg) => {
-  console.log('Any message received:', {
-    text: msg.text,
-    chat_id: msg.chat.id,
-    message_id: msg.message_id,
-    date: msg.date
-  });
-});
+// bot.on('message', (msg) => {
+//   console.log('Any message received:', {
+//     text: msg.text,
+//     chat_id: msg.chat.id,
+//     message_id: msg.message_id,
+//     date: msg.date
+//   });
+// });
 
 // Health check route
 app.get('/status', (req, res) => {

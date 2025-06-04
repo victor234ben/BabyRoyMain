@@ -153,7 +153,7 @@ const deleteSessionToken = async (token) => {
 // Fixed session-based authentication - should redirect to frontend instead of returning JSON
 const sessionBasedAuth = async (req, res) => {
   const sessionToken = req.query.session;
-  console.log("🔍 [DEBUG] Session token received:", sessionToken);
+  // console.log("🔍 [DEBUG] Session token received:", sessionToken);
 
   try {
     if (!sessionToken) {
@@ -163,7 +163,7 @@ const sessionBasedAuth = async (req, res) => {
 
     // Get session data from store
     const sessionData = await getSessionData(sessionToken);
-    console.log("🔍 [DEBUG] Session data retrieved:", sessionData);
+    // console.log("🔍 [DEBUG] Session data retrieved:", sessionData);
 
     if (!sessionData) {
       // Redirect to login with error instead of returning JSON
@@ -194,7 +194,7 @@ const sessionBasedAuth = async (req, res) => {
     // Generate JWT token for the session
     const jwtToken = jwt.sign(
       { userId: user._id },
-      process.env.JWT_SECRET || 'your-secret-key',
+      process.env.JWT_SECRET ,
       { expiresIn: '7d' }
     );
 

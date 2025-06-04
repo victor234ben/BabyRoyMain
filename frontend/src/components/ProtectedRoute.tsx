@@ -13,7 +13,7 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
       <div className="flex h-screen w-full items-center justify-center">
         <div className="text-center">
           <Loader className="h-8 w-8 animate-spin text-paws-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">to be sure Loading...</p>
+          <p className="text-muted-foreground">Loading...</p>
           <p>{isAuth}</p>
         </div>
       </div>

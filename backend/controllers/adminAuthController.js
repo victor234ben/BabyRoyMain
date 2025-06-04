@@ -41,7 +41,7 @@ const adminAuthController = {
           email: admin.email,
           role: admin.role
         },
-        process.env.JWT_SECRET || 'your-secret-key',
+        process.env.JWT_SECRET ,
         { expiresIn: '24h' }
       );
 
@@ -137,7 +137,7 @@ const adminAuthController = {
         });
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET );
       const admin = await Admin.findById(decoded.id);
 
       if (!admin || !admin.isActive) {
