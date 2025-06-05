@@ -199,6 +199,20 @@ const TasksPage = () => {
         const res = await taskAPI.connectWallet(taskId, action, address);
         updateSingleTask(res.task);
         toast.success("Wallet connected successfully!");
+      } else if (action === "invite") {
+        // inviteFriends?inviteNumber=10
+        try {
+          const totalInvited = 10;
+
+          const res = await taskAPI.verifyInvite(taskId, action, totalInvited);
+          updateSingleTask(res.task);
+          toast.success("Task Completed");
+        } catch (error) {
+          toast.error("Invite a total of 10 referral to complete this task");
+        }
+      } else if (action === "completeOnboarding") {
+        const res = await taskAPI.completeOnboarding(taskId, action);
+        updateSingleTask(res.task);
       } else {
         window.open(verificationData, "_blank");
         setProcessing(taskId);

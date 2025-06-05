@@ -126,8 +126,8 @@ const connectWallet = async (req, res) => {
 
 const verifyInvite = async (req, res) => {
     const referralCode = req.user.referralCode;
-    const { taskId } = req.body;
-    const inviteThreshold = parseInt(req.params.inviteNumber, 10); // Convert to number
+    const { taskId, totalInvited } = req.body;
+    const inviteThreshold = totalInvited
 
     try {
         // Count how many users this user has referred
@@ -175,6 +175,71 @@ const verifyInvite = async (req, res) => {
         return res.status(500).json({ success: false, message: "Server error" });
     }
 };
+
+const completeOnboarding = async (req, res) => {
+    const { taskId } = req.body;
+    const userId = req.user._id;
+
+    try {
+        const task = await Task.findById(taskId);
+        if (!task) {
+            return res.status(404).json({ success: false, message: 'Task not found' });
+        }
+
+        // Get all onboarding tasks (should be 8 ideally)
+        const allOnboardingTasks = await Task.find({ isOnboarding: true }).select('_id');
+        const onboardingTaskIds = allOnboardingTasks.map(t => t._id.toString());
+
+        // Get completed onboarding tasks for this user
+        const userCompletedTasks = await TaskCompletion.find({
+            user: userId,
+            task: { $in: onboardingTaskIds },
+            status: 'approved'  // or 'completed', depending on your logic
+        }).select('task');
+
+        const completedTaskIds = userCompletedTasks.map(t => t.task.toString());
+
+        const hasCompletedAll = onboardingTaskIds.every(id => completedTaskIds.includes(id));
+
+        if (!hasCompletedAll) {
+            return res.status(400).json({
+                success: false,
+                message: 'You must complete all onboarding tasks before proceeding.',
+            });
+        }
+
+        // Check or create completion record for current task
+        let completion = await TaskCompletion.findOne({
+            user: userId,
+            task: task._id,
+        }).select('status submissionData');
+
+        if (!completion) {
+            completion = await TaskCompletion.create({
+                user: userId,
+                task: task._id,
+                status: 'pending',
+                pointsAwarded: 0,
+                completedAt: new Date(),
+                submissionData: '',
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            task: {
+                ...task._doc,
+                userStatus: completion.status,
+                userSubmission: completion.submissionData,
+            },
+        });
+
+    } catch (error) {
+        console.error('Error in completeOnboarding Controller', error);
+        return res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
 
 
 module.exports = { verifyTelegram, connectWallet, verifyInvite }

@@ -25,6 +25,7 @@ const demoTasks = [
     verificationData: "",
     taskType: "ingame",
     isActive: true,
+    isOnboarding: true,
   },
   {
     title: "Join Telegram Group",
@@ -38,6 +39,7 @@ const demoTasks = [
     action: "telegram",
     taskType: "ingame",
     isActive: true,
+    isOnboarding: true,
     icon: "https://res.cloudinary.com/dtcbirvxc/image/upload/v1747595252/livk3oxncma1p1bvxqbw.webp"
   },
   {
@@ -53,6 +55,7 @@ const demoTasks = [
     verificationData: "manual",
     taskType: "ingame",
     isActive: true,
+    isOnboarding: true,
   },
   {
     icon: "https://res.cloudinary.com/dtcbirvxc/image/upload/v1747595368/bs5erycda2v6dpxi94uw.svg",
@@ -63,10 +66,11 @@ const demoTasks = [
     pointsReward: 5000,
     requirements: "Invite friends",
     verificationMethod: "action",
-    action: "inviteFriends?inviteNumber=10",
+    action: "invite",
     verificationData: "manual",
     taskType: "ingame",
     isActive: true,
+    isOnboarding: true,
   },
   {
     title: "Follow Youtube Channel",
@@ -79,6 +83,7 @@ const demoTasks = [
     verificationData: "https://youtube.com/@BabyRoymeme",
     taskType: "ingame",
     isActive: true,
+    isOnboarding: true,
     icon: "https://res.cloudinary.com/dtcbirvxc/image/upload/v1747596738/uslzgesagojpmarq8hdj.webp"
   },
   {
@@ -92,6 +97,7 @@ const demoTasks = [
     verificationData: "https://x.com/BabyRoymeme",
     taskType: "ingame",
     isActive: true,
+    isOnboarding: true,
     icon: "https://res.cloudinary.com/dtcbirvxc/image/upload/v1747595237/jzmj6fpdsfzjklos3sfi.png"
   },
   {
@@ -105,6 +111,7 @@ const demoTasks = [
     verificationData: "https://x.com/BabyRoymeme",
     taskType: "ingame",
     isActive: true,
+    isOnboarding: true,
     icon: "https://res.cloudinary.com/dtcbirvxc/image/upload/v1747595237/jzmj6fpdsfzjklos3sfi.png"
   },
   {
@@ -114,10 +121,12 @@ const demoTasks = [
     category: "learn",
     pointsReward: 1000,
     requirements: "Finish all onboarding steps.",
-    verificationMethod: "auto",
+    verificationMethod: "action",
+    action: "completeOnboarding",
     verificationData: "",
     taskType: "ingame",
     isActive: true,
+    isOnboarding: true,
   },
 ];
 // Function to add demo tasks to the database

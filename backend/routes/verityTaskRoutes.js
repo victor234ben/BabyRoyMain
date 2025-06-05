@@ -7,6 +7,7 @@ router.use(protect)
 
 router.post('/tasks/verify/telegram', verifyTelegram)
 router.post('/tasks/verify/connect', connectWallet)
-router.post('/tasks/verify/inviteFriends', verifyInvite)
+router.post('/tasks/verify/invite', verifyInvite)
+router.post('tasks/verify/completeOnboarding', )
 
 module.exports = router

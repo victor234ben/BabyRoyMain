@@ -288,6 +288,38 @@ export const taskAPI = {
       console.log(error.message);
     }
   },
+
+  verifyInvite: async (
+    taskId: string,
+    action: string,
+    totalInvited: number
+  ) => {
+    try {
+      const response = await fetch(`${API_URL}/tasks/verify/${action}`, {
+        method: "POST",
+        body: JSON.stringify({ taskId, totalInvited }),
+        credentials: "include",
+      });
+
+      return await handleResponse(response);
+    } catch (error) {
+      console.log(error.message);
+    }
+  },
+
+  completeOnboarding: async (taskId: string, action: string) => {
+    try {
+      const response = await fetch(`${API_URL}/tasks/verify${action}`, {
+        method: "POST",
+        body: JSON.stringify({ taskId }),
+      });
+
+      return await handleResponse(response);
+    } catch (error) {
+      console.log(error);
+      toast.error("Complete all others task then check back.")
+    }
+  },
 };
 
 // Referral APIs

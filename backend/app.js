@@ -158,7 +158,7 @@ app.use(cookieParser())
 app.use(cors({
   origin: [
     "http://localhost:8080",
-    "https://babyroy-rjjm.onrender.com"
+    "https://babyroy-rjjm.onrender.com",
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
