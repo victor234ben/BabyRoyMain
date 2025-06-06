@@ -304,6 +304,7 @@ export const taskAPI = {
       return await handleResponse(response);
     } catch (error) {
       console.log(error.message);
+      toast.error(error.message);
     }
   },
 

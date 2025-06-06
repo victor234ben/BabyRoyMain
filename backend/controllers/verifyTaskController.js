@@ -129,10 +129,13 @@ const verifyInvite = async (req, res) => {
     const { taskId, totalInvited } = req.body;
     const inviteThreshold = totalInvited
     const userId = req.user._id
+    console.log("called")
 
     try {
         // Count how many users this user has referred
         const totalReferred = await User.countDocuments({ referredBy: userId });
+
+        console.log(totalReferred)
 
         if (totalReferred > inviteThreshold) {
             const task = await Task.findById(taskId);
@@ -156,7 +159,7 @@ const verifyInvite = async (req, res) => {
                     submissionData: '',
                 });
             }
-
+            console.log("reached here")
             return res.status(200).json({
                 success: true,
                 task: {
