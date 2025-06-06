@@ -128,10 +128,11 @@ const verifyInvite = async (req, res) => {
     const referralCode = req.user.referralCode;
     const { taskId, totalInvited } = req.body;
     const inviteThreshold = totalInvited
+    const userId = req.user._id
 
     try {
         // Count how many users this user has referred
-        const totalReferred = await User.countDocuments({ referredBy: referralCode });
+        const totalReferred = await User.countDocuments({ referredBy: userId });
 
         if (totalReferred > inviteThreshold) {
             const task = await Task.findById(taskId);
