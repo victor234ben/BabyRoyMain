@@ -96,8 +96,6 @@ const getReferralsList = async (req, res) => {
         .skip(startIndex)
         .limit(limit);
 
-    console.log(referrals)
-
     res.status(200).json({
       success: true,
       count: referrals.length,
