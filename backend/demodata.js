@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Task = require('./models/taskModel');
+const User = require('./models/userModel');
 
 // Replace with your MongoDB connection string
 const mongoURI = 'mongodb+srv://victor234ben:XrIp0BgNbw25jp2q@cluster0.2yl9jx8.mongodb.net/babyroy';
@@ -129,6 +130,39 @@ const demoTasks = [
     isOnboarding: true,
   },
 ];
+
+const createUsers = async () => {
+  try {
+
+    const users = [];
+
+    const baseTelegramId = 100000;
+
+    for (let i = 0; i < 20; i++) {
+      const user = {
+        name: `User ${i + 1}`,
+        first_name: `First${i + 1}`,
+        last_name: `Last${i + 1}`,
+        email: `user${i + 1}@demo.com`,
+        password: 'Password123!',
+        telegramId: baseTelegramId + i,
+        walletAddress: `0xWalletAddress${i + 1}`,
+        referralCode: `REFCODE${i + 1}`,
+        referredBy: i < 10 ? '683d6c5b21a9fd31c735fd19' : '683f620536bf344f8bd0677f',
+      };
+
+      users.push(user);
+    }
+
+    const createdUsers = await User.insertMany(users);
+    console.log(`${createdUsers.length} users created`);
+    mongoose.disconnect();
+  } catch (error) {
+    console.error('Error creating users:', error);
+    mongoose.disconnect();
+  }
+};
+
 // Function to add demo tasks to the database
 const addDemoTasks = async () => {
   try {
@@ -150,7 +184,10 @@ const deleteDemoTasks = async (req, res) => {
   }
 }
 // Run the function
-addDemoTasks();
+// addDemoTasks();
+
+
+createUsers();
 
 // deleteDemoTasks()
 

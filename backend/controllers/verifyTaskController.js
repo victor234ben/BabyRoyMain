@@ -149,8 +149,8 @@ const verifyInvite = async (req, res) => {
                 completion = await TaskCompletion.create({
                     user: req.user._id,
                     task: task._id,
-                    status: 'pending', // Task now marked as pending
-                    pointsAwarded: 0,  // No points yet until approval
+                    status: 'pending',
+                    pointsAwarded: 0,
                     completedAt: new Date(),
                     submissionData: '',
                 });
@@ -194,7 +194,7 @@ const completeOnboarding = async (req, res) => {
         const userCompletedTasks = await TaskCompletion.find({
             user: userId,
             task: { $in: onboardingTaskIds },
-            status: 'approved'  // or 'completed', depending on your logic
+            status: 'approved'
         }).select('task');
 
         const completedTaskIds = userCompletedTasks.map(t => t.task.toString());
@@ -242,4 +242,4 @@ const completeOnboarding = async (req, res) => {
 
 
 
-module.exports = { verifyTelegram, connectWallet, verifyInvite }
+module.exports = { verifyTelegram, connectWallet, verifyInvite, completeOnboarding }

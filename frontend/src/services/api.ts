@@ -312,12 +312,13 @@ export const taskAPI = {
       const response = await fetch(`${API_URL}/tasks/verify${action}`, {
         method: "POST",
         body: JSON.stringify({ taskId }),
+        credentials: "include",
       });
 
       return await handleResponse(response);
     } catch (error) {
       console.log(error);
-      toast.error("Complete all others task then check back.")
+      toast.error("Complete all others task then check back.");
     }
   },
 };

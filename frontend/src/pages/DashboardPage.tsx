@@ -56,13 +56,17 @@ const DashboardPage = () => {
 
           {/* Action Buttons */}
           <div className="space-y-3 px-4 mt-8 mb-8">
-            <button className="shine-effect w-full text-white bg-[#ffffff0d] border-[1px] border-[#2d2d2e] rounded-lg px-4 py-2 flex items-center justify-between">
+            <a
+              href="https://t.me/babyroyarmy"
+              target="_blank"
+              className="shine-effect w-full text-white bg-[#ffffff0d] border-[1px] border-[#2d2d2e] rounded-lg px-4 py-2 flex items-center justify-between"
+            >
               <div className="flex items-center gap-3 font-medium">
                 <Community className="w-8 h-8" />
                 <span className="text-white">Join our community</span>
               </div>
               <ArrowRight className="w-6 h-6 text-gray-400" />
-            </button>
+            </a>
           </div>
         </div>
       </div>
