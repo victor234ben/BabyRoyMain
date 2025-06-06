@@ -292,7 +292,7 @@ export const taskAPI = {
   verifyInvite: async (
     taskId: string,
     action: string,
-    totalInvited: number,
+    totalInvited: number
   ) => {
     try {
       const response = await fetch(`${API_URL}/tasks/verify/${action}`, {
@@ -310,10 +310,13 @@ export const taskAPI = {
   },
 
   completeOnboarding: async (taskId: string, action: string) => {
+    toast.success("this is the task id in frontend" + taskId);
+    toast.success(action);
     try {
       const response = await fetch(`${API_URL}/tasks/verify/${action}`, {
         method: "POST",
         body: JSON.stringify({ taskId }),
+        ...authHeader(),
         credentials: "include",
       });
 

@@ -186,7 +186,6 @@ const TasksPage = () => {
     action: string,
     telegramId: string
   ) => {
-    toast.success(taskId);
     try {
       if (action === "connect") {
         let address: string | null = walletAddress;

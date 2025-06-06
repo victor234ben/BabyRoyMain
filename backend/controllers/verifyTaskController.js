@@ -180,7 +180,8 @@ const completeOnboarding = async (req, res) => {
     const { taskId } = req.body;
     const userId = req.user._id;
 
-    console.log(taskId, userId)
+    console.log("this is task id", taskId)
+    console.log("this is the user id", userId)
 
     try {
         const task = await Task.findById(taskId);
