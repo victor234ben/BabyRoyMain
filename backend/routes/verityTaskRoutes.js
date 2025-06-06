@@ -8,6 +8,6 @@ router.use(protect)
 router.post('/tasks/verify/telegram', verifyTelegram)
 router.post('/tasks/verify/connect', connectWallet)
 router.post('/tasks/verify/invite', verifyInvite)
-router.post('tasks/verify/completeOnboarding', completeOnboarding)
+router.post('/tasks/verify/completeOnboarding', completeOnboarding)
 
 module.exports = router
