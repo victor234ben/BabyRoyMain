@@ -310,7 +310,6 @@ export const taskAPI = {
   },
 
   completeOnboarding: async (taskId: string, action: string) => {
-    toast.success("this is the task id in frontend" + taskId);
     toast.success(action);
     try {
       const response = await fetch(`${API_URL}/tasks/verify/${action}`, {
