@@ -206,6 +206,7 @@ const TasksPage = () => {
         updateSingleTask(res.task);
         toast.success("Task Completed");
       } else if (action === "completeOnboarding") {
+        toast.info(taskId);
         const res = await taskAPI.completeOnboarding(taskId, action);
         updateSingleTask(res.task);
       } else {

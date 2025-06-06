@@ -126,9 +126,9 @@ const connectWallet = async (req, res) => {
 
 const verifyInvite = async (req, res) => {
     const { taskId, totalInvited } = req.body;
-    const inviteThreshold = 10
+    const inviteThreshold = totalInvited
     const userId = req.user._id
-    console.log("called", taskId)
+    console.log("called", taskId, totalInvited)
 
     try {
         // Count how many users this user has referred
