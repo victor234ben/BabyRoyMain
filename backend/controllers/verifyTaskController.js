@@ -128,22 +128,17 @@ const verifyInvite = async (req, res) => {
     const { taskId, totalInvited } = req.body;
     const inviteThreshold = totalInvited
     const userId = req.user._id
-    console.log("called", taskId, totalInvited)
 
     try {
         // Count how many users this user has referred
         const totalReferred = await User.countDocuments({ referredBy: userId });
 
-        console.log(totalReferred)
-        console.log(inviteThreshold)
 
         if (totalReferred >= inviteThreshold) {
-            console.log("entered")
             const task = await Task.findById(taskId);
             if (!task) {
                 return res.status(404).json({ success: false, message: 'Task not found' });
             }
-            console.log(task)
 
             // Check if completion already exists
             let completion = await TaskCompletion.findOne({
@@ -161,7 +156,6 @@ const verifyInvite = async (req, res) => {
                     submissionData: '',
                 });
             }
-            console.log("reached here")
             return res.status(200).json({
                 success: true,
                 task: {
