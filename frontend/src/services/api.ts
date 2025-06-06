@@ -311,7 +311,7 @@ export const taskAPI = {
 
   completeOnboarding: async (taskId: string, action: string) => {
     try {
-      const response = await fetch(`${API_URL}/tasks/verify${action}`, {
+      const response = await fetch(`${API_URL}/tasks/verify/${action}`, {
         method: "POST",
         body: JSON.stringify({ taskId }),
         credentials: "include",
