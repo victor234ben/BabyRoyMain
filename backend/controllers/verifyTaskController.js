@@ -126,7 +126,7 @@ const connectWallet = async (req, res) => {
 
 const verifyInvite = async (req, res) => {
     const { taskId, totalInvited } = req.body;
-    const inviteThreshold = totalInvited
+    const inviteThreshold = 10
     const userId = req.user._id
     console.log("called")
 

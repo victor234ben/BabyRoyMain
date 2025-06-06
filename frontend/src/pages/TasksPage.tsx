@@ -226,7 +226,7 @@ const TasksPage = () => {
       }
     } catch (error) {
       console.error("Action verification error:", error);
-      toast.error("Failed to complete action");
+      toast.error("Failed to complete action", error);
       setProcessing(null);
     }
   };
