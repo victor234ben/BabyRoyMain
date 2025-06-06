@@ -186,6 +186,7 @@ const TasksPage = () => {
     action: string,
     telegramId: string
   ) => {
+    toast.success(taskId);
     try {
       if (action === "connect") {
         let address: string | null = walletAddress;
@@ -201,12 +202,12 @@ const TasksPage = () => {
         toast.success("Wallet connected successfully!");
       } else if (action === "invite") {
         const totalInvited = 10;
+        toast.success(taskId);
 
         const res = await taskAPI.verifyInvite(taskId, action, totalInvited);
         updateSingleTask(res.task);
         toast.success("Task Completed");
       } else if (action === "completeOnboarding") {
-        toast.info(taskId);
         const res = await taskAPI.completeOnboarding(taskId, action);
         updateSingleTask(res.task);
       } else {

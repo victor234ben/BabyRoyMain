@@ -292,12 +292,13 @@ export const taskAPI = {
   verifyInvite: async (
     taskId: string,
     action: string,
-    totalInvited: number
+    totalInvited: number,
   ) => {
     try {
       const response = await fetch(`${API_URL}/tasks/verify/${action}`, {
         method: "POST",
         body: JSON.stringify({ taskId, totalInvited }),
+        ...authHeader(),
         credentials: "include",
       });
 
