@@ -187,6 +187,7 @@ const completeOnboarding = async (req, res) => {
         if (!task) {
             return res.status(404).json({ success: false, message: 'Task not found' });
         }
+        console.log("reached here")
 
         // Get all onboarding tasks (should be 7 ideally)
         const allOnboardingTasks = await Task.find({ isOnboarding: true }).select('_id');
