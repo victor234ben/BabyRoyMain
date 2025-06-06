@@ -127,7 +127,7 @@ const demoTasks = [
     verificationData: "",
     taskType: "ingame",
     isActive: true,
-    isOnboarding: true,
+    isOnboarding: false,
   },
 ];
 
@@ -184,10 +184,10 @@ const deleteDemoTasks = async (req, res) => {
   }
 }
 // Run the function
-// addDemoTasks();
+addDemoTasks();
 
 
-createUsers();
+// createUsers();
 
 // deleteDemoTasks()
 

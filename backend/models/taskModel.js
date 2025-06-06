@@ -45,6 +45,10 @@ const taskSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    isOnboarding: {
+      type: Boolean,
+      default: false,
+    },
     taskType: {
       type: String,
       default: "ingame",

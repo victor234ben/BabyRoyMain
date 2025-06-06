@@ -180,15 +180,20 @@ const completeOnboarding = async (req, res) => {
     const { taskId } = req.body;
     const userId = req.user._id;
 
+    console.log(taskId, userId)
+
     try {
         const task = await Task.findById(taskId);
         if (!task) {
             return res.status(404).json({ success: false, message: 'Task not found' });
         }
 
-        // Get all onboarding tasks (should be 8 ideally)
+        // Get all onboarding tasks (should be 7 ideally)
         const allOnboardingTasks = await Task.find({ isOnboarding: true }).select('_id');
         const onboardingTaskIds = allOnboardingTasks.map(t => t._id.toString());
+
+        console.log("onboarding tasks ", allOnboardingTasks)
+        console.log(onboardingTaskIds)
 
         // Get completed onboarding tasks for this user
         const userCompletedTasks = await TaskCompletion.find({
@@ -196,6 +201,8 @@ const completeOnboarding = async (req, res) => {
             task: { $in: onboardingTaskIds },
             status: 'approved'
         }).select('task');
+
+        console.log("completed tasks", userCompletedTasks)
 
         const completedTaskIds = userCompletedTasks.map(t => t.task.toString());
 
