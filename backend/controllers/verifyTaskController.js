@@ -125,7 +125,6 @@ const connectWallet = async (req, res) => {
 
 
 const verifyInvite = async (req, res) => {
-    const referralCode = req.user.referralCode;
     const { taskId, totalInvited } = req.body;
     const inviteThreshold = totalInvited
     const userId = req.user._id
@@ -136,12 +135,14 @@ const verifyInvite = async (req, res) => {
         const totalReferred = await User.countDocuments({ referredBy: userId });
 
         console.log(totalReferred)
+        console.log(totalInvited)
 
-        if (totalReferred > inviteThreshold) {
+        if (totalReferred >= inviteThreshold) {
             const task = await Task.findById(taskId);
             if (!task) {
                 return res.status(404).json({ success: false, message: 'Task not found' });
             }
+            console.log(task)
 
             // Check if completion already exists
             let completion = await TaskCompletion.findOne({
