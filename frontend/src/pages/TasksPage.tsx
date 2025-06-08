@@ -201,7 +201,6 @@ const TasksPage = () => {
         toast.success("Wallet connected successfully!");
       } else if (action === "invite") {
         const totalInvited = 10;
-        toast.success(taskId);
 
         const res = await taskAPI.verifyInvite(taskId, action, totalInvited);
         updateSingleTask(res.task);
@@ -227,7 +226,7 @@ const TasksPage = () => {
       }
     } catch (error) {
       console.error("Action verification error:", error);
-      toast.error("Failed to complete action", error);
+      // toast.error("Failed to complete action", error);
       setProcessing(null);
     }
   };

@@ -267,6 +267,7 @@ export const taskAPI = {
       return await handleResponse(response);
     } catch (error) {
       console.log(error);
+      toast.error(error.message);
     }
   },
 
@@ -286,6 +287,7 @@ export const taskAPI = {
       return await handleResponse(response);
     } catch (error) {
       console.log(error.message);
+      toast.error(error.message);
     }
   },
 
@@ -310,7 +312,6 @@ export const taskAPI = {
   },
 
   completeOnboarding: async (taskId: string, action: string) => {
-    toast.success(action);
     try {
       const response = await fetch(`${API_URL}/tasks/verify/${action}`, {
         method: "POST",

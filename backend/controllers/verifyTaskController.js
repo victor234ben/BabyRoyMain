@@ -72,7 +72,6 @@ const verifyTelegram = async (req, res) => {
     }
 };
 
-
 const connectWallet = async (req, res) => {
     try {
         const { walletAddress, taskId } = req.body;
@@ -122,7 +121,6 @@ const connectWallet = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Server error' });
     }
 };
-
 
 const verifyInvite = async (req, res) => {
     const { taskId, totalInvited } = req.body;
@@ -189,9 +187,6 @@ const completeOnboarding = async (req, res) => {
         const allOnboardingTasks = await Task.find({ isOnboarding: true }).select('_id');
         const onboardingTaskIds = allOnboardingTasks.map(t => t._id.toString());
 
-        console.log("onboarding tasks ", allOnboardingTasks)
-        console.log(onboardingTaskIds)
-
         // Get completed onboarding tasks for this user
         const userCompletedTasks = await TaskCompletion.find({
             user: userId,
@@ -241,7 +236,5 @@ const completeOnboarding = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Server error' });
     }
 };
-
-
 
 module.exports = { verifyTelegram, connectWallet, verifyInvite, completeOnboarding }
