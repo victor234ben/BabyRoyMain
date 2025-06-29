@@ -35,7 +35,7 @@ const TasksPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<TaskCategory>("ingame");
   const [retryCount, setRetryCount] = useState(0);
-  const { user } = useAuth();
+
   // can call disconnet wallet from here.
   const { connectWallet, isConnected, walletAddress } = useWalletConnection();
 
@@ -63,7 +63,8 @@ const TasksPage = () => {
         setFilteredTasks(data.tasks);
       } catch (error) {
         console.error("Error fetching tasks:", error);
-        const errorMessage = error.message || "Failed to load tasks";
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to load tasks";
         setError(errorMessage);
 
         // Show toast only if it's not a network/connection issue on first load
@@ -74,6 +75,7 @@ const TasksPage = () => {
         // Auto-retry logic for network issues
         if (
           retryCount < MAX_RETRIES &&
+          error instanceof Error &&
           (error.message?.includes("fetch") ||
             error.message?.includes("network") ||
             error.message?.includes("connection"))
@@ -188,7 +190,7 @@ const TasksPage = () => {
   ) => {
     try {
       if (action === "connect") {
-        let address: string | null = walletAddress;
+        let address: string = walletAddress || "";
 
         // If not connected, trigger connection
         if (!isConnected) {
@@ -505,8 +507,6 @@ const TaskList = ({
                     onError={(e) => {
                       // Fallback if image fails to load
                       e.currentTarget.style.display = "none";
-                      e.currentTarget.nextElementSibling.style.display =
-                        "block";
                     }}
                   />
                 ) : null}

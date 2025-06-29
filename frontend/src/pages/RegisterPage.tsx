@@ -5,8 +5,6 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
-import { referralAPI } from '@/services/api';
 
 // Components
 import { Button } from '@/components/ui/button';

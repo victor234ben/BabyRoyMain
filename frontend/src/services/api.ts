@@ -67,6 +67,13 @@ export type DashboardData = {
   referralCount: number;
 };
 
+export type userData = {
+  telegramId: string;
+  first_name: string;
+  last_name: string;
+  username: string;
+};
+
 // Helper for handling HTTP errors
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
@@ -150,7 +157,7 @@ export const authAPI = {
     return response.json();
   },
 
-  telegramOauth: async (userData) => {
+  telegramOauth: async (userData: userData) => {
     try {
       const response = await fetch(`${API_URL}/auth/telegramOauth`, {
         method: "POST",
@@ -266,8 +273,12 @@ export const taskAPI = {
 
       return await handleResponse(response);
     } catch (error) {
-      console.log(error);
-      toast.error(error.message);
+      if (error instanceof Error) {
+        console.log(error);
+        toast.error(error.message);
+      } else {
+        console.log("unknown error", error);
+      }
     }
   },
 
@@ -286,8 +297,12 @@ export const taskAPI = {
 
       return await handleResponse(response);
     } catch (error) {
-      console.log(error.message);
-      toast.error(error.message);
+      if (error instanceof Error) {
+        console.log(error);
+        toast.error(error.message);
+      } else {
+        console.log("unknown error", error);
+      }
     }
   },
 
@@ -306,8 +321,12 @@ export const taskAPI = {
 
       return await handleResponse(response);
     } catch (error) {
-      console.log(error.message);
-      toast.error(error.message);
+      if (error instanceof Error) {
+        console.log(error.message);
+        toast.error(error.message);
+      } else {
+        console.log("unknown error", error);
+      }
     }
   },
 

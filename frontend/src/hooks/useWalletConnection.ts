@@ -1,5 +1,5 @@
 import { useTonConnectUI, useTonWallet } from "@tonconnect/ui-react";
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 
 export const useWalletConnection = () => {
   const [tonConnectUI] = useTonConnectUI();

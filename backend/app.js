@@ -120,14 +120,13 @@ app.use(
         'https://hk.tpstatic.net',
         'https://pub.tomo.inc/',
         'https://cdn.mirailabs.co',
-        // ✅ ADD THESE - Additional wallet icons
         'https://tonconnect.io',
         'https://cdn.jsdelivr.net',
         'https://avatars.githubusercontent.com'
       ],
       styleSrc: [
         "'self'",
-        "'unsafe-inline'", // ✅ ADD THIS - Required for TonConnect UI styles
+        "'unsafe-inline'",
         'https://fonts.googleapis.com',
         'https://cdn.jsdelivr.net',
         'https://cdnjs.cloudflare.com'
@@ -157,7 +156,7 @@ app.use(
 app.use(cookieParser())
 app.use(cors({
   origin: [
-    "http://localhost:8080",
+    "http://localhost:5173",
     "https://babyroy-rjjm.onrender.com",
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
@@ -227,20 +226,7 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
   // Extract referral code if present (format: /start 3343545)
   const referralCode = startParam || null;
 
-  // console.log("Start command received:", {
-  //   chatId,
-  //   startParam,
-  //   referralCode,
-  //   userId,
-  //   username,
-  //   first_name,
-  //   last_name
-  // });
-
-  // Send immediate response to user while processing in background
-
-
-  const sendWelcomeMessage = async (sessionToken) => {
+  const sendWelcomeMessage = async () => {
     try {
       // Send the image first - ALWAYS send this
       await bot.sendPhoto(chatId, 'https://res.cloudinary.com/dtcbirvxc/image/upload/v1747334030/kvqmrisqgphhhlsx3u8u.png', {
@@ -250,12 +236,12 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
       });
 
       // Build the mini app URL with session token
-      const miniAppUrl = `https://babyroy-rjjm.onrender.com/api/auth/verifysession?session=${sessionToken}`;
+      const miniAppUrl = `https://babyroy-rjjm.onrender.com/`;
 
-      // Send message with mini app button - ALWAYS send this
+      // Send message with INLINE keyboard button - This ensures initData is available
       await bot.sendMessage(chatId, 'Tap below to launch the mini app:', {
         reply_markup: {
-          keyboard: [
+          inline_keyboard: [
             [
               {
                 text: referralCode ? '🎁 Open BabyRoy Mini App (Bonus!)' : '🚀 Open BabyRoy Mini App',
@@ -265,8 +251,6 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
               },
             ],
           ],
-          resize_keyboard: true,
-          one_time_keyboard: true,
         },
       });
 
@@ -274,12 +258,12 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
     } catch (error) {
       console.error("❌ Error sending welcome message:", error);
 
-      // Fallback message if image fails
+      // Fallback message if image fails - Also using inline keyboard
       try {
-        const fallbackUrl = `https://babyroy-rjjm.onrender.com/api/auth/verifysession?session=${sessionToken}`;
+        const fallbackUrl = `https://babyroy-rjjm.onrender.com/`;
         await bot.sendMessage(chatId, `Welcome to BabyRoy! 🎉${referralCode ? '\nYou were invited by a friend! Get ready for bonus rewards!' : ''}\n\nTap below to launch the mini app:`, {
           reply_markup: {
-            keyboard: [
+            inline_keyboard: [
               [
                 {
                   text: referralCode ? '🎁 Open BabyRoy Mini App (Bonus!)' : '🚀 Open BabyRoy Mini App',
@@ -289,8 +273,6 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
                 },
               ],
             ],
-            resize_keyboard: true,
-            one_time_keyboard: true,
           },
         });
         console.log(`✅ Fallback welcome message sent to user ${userId}`);
@@ -313,30 +295,11 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
 
       console.log("✅ User creation/login result:", userResult);
 
-      // Generate session token for this user
-      const sessionToken = generateSessionToken({
-        userId: userResult.user._id,
-        telegramId: userId,
-        first_name,
-        last_name,
-        username
-      });
-
-      // Store session token temporarily (you can use Redis or in-memory store)
-      await storeSessionToken(sessionToken, {
-        userId: userResult.user._id,
-        telegramId: userId,
-        first_name,
-        last_name,
-        username,
-        userExists: true
-      });
-
-      // Send referral bonus message if applicable
+      // Send referral bonus message if applicable - Already using inline keyboard
       if (referralCode && userResult.isNewUser && userResult.referralApplied) {
         setTimeout(async () => {
           try {
-            const bonusUrl = `https://babyroy-rjjm.onrender.com/api/auth/verifysession?session=${sessionToken}`;
+            const bonusUrl = `https://babyroy-rjjm.onrender.com/`;
             await bot.sendMessage(chatId, '🎁 Referral bonus has been credited to your account!', {
               reply_markup: {
                 inline_keyboard: [
@@ -358,7 +321,7 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
         }, 2000);
       }
 
-      return sessionToken;
+      return;
 
     } catch (error) {
       console.error("❌ Error in user creation process:", error);
@@ -368,16 +331,16 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
 
   // Execute both processes
   try {
-    const sessionToken = await processUserCreation();
-    await sendWelcomeMessage(sessionToken);
+    const createUser = await processUserCreation();
+    await sendWelcomeMessage();
   } catch (error) {
     console.error("❌ Error in /start command processing:", error);
 
-    // If user creation fails, still try to send a basic message
+    // If user creation fails, still try to send a basic message - Using inline keyboard
     try {
       await bot.sendMessage(chatId, `Welcome to BabyRoy! 🎉\n\nTap below to launch the mini app:`, {
         reply_markup: {
-          keyboard: [
+          inline_keyboard: [
             [
               {
                 text: '🚀 Open BabyRoy Mini App',
@@ -387,8 +350,6 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
               },
             ],
           ],
-          resize_keyboard: true,
-          one_time_keyboard: true,
         },
       });
     } catch (finalError) {
@@ -397,49 +358,6 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
   }
 });
 
-// Generate session token function
-const generateSessionToken = (userData) => {
-  const payload = {
-    userId: userData.userId,
-    telegramId: userData.telegramId,
-    first_name: userData.first_name,
-    last_name: userData.last_name,
-    username: userData.username,
-    iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + (15 * 60), // 15 minutes expiry
-  };
-
-  return jwt.sign(payload, process.env.JWT_SECRET);
-};
-
-
-const storeSessionToken = async (token, userData) => {
-  try {
-    const expiresInSeconds = 15 * 60; // 15 minutes
-    const sessionData = {
-      ...userData,
-      createdAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + expiresInSeconds * 1000).toISOString()
-    };
-
-    console.log(`📝 Storing session token: ${token}`);
-    console.log(`📝 Session data:`, JSON.stringify(sessionData, null, 2));
-
-    await redisClient.setEx(`session:${token}`, expiresInSeconds, JSON.stringify(sessionData));
-
-    // Verify the token was stored
-    const verification = await redisClient.get(`session:${token}`);
-    if (verification) {
-      console.log(`✅ Session token stored successfully in Redis`);
-    } else {
-      console.log(`❌ Failed to store session token in Redis`);
-    }
-
-  } catch (error) {
-    console.error(`❌ Error storing session token:`, error);
-    throw error;
-  }
-};
 // Optimized user creation function with better error handling
 const handleUserCreation = async ({ telegramId, first_name, last_name, username, referralCode }) => {
   // console.log("🔄 Creating/finding user with referral code:", referralCode);
@@ -576,16 +494,6 @@ const handleUserCreation = async ({ telegramId, first_name, last_name, username,
     throw error;
   }
 };
-
-// Keep your existing message handler for debugging
-// bot.on('message', (msg) => {
-//   console.log('Any message received:', {
-//     text: msg.text,
-//     chat_id: msg.chat.id,
-//     message_id: msg.message_id,
-//     date: msg.date
-//   });
-// });
 
 // Health check route
 app.get('/status', (req, res) => {

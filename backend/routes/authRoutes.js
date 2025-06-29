@@ -12,7 +12,6 @@ router.post('/register', registerUser);
 // Login route
 router.post('/login', loginUser);
 router.post('/telegramOauth', telegramLoginAndSignup)
-router.get('/verifysession', sessionBasedAuth)
 router.get('/validate', protect, validateUser)
 
 module.exports = router;

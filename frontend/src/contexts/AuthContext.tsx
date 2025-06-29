@@ -10,6 +10,20 @@ import { authAPI, profileAPI, UserProfile } from "@/services/api";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 
+type TelegramOauthResponse = {
+  success: boolean;
+  user: {
+    _id: string;
+    first_name: string;
+    last_name?: string;
+    username?: string;
+    telegramId: string;
+    referralCode: string;
+    points: number;
+    totalEarned: number;
+  };
+};
+
 type AuthContextType = {
   user: UserProfile | null;
   loading: boolean;
@@ -17,12 +31,11 @@ type AuthContextType = {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   telegramOauth: (
-    telegramId: string,
+    telegramId: number,
     first_name: string,
     last_name: string,
     username: string
-  ) => Promise<void>;
-  sessionAuth: (sessionToken: string) => Promise<void>;
+  ) => Promise<TelegramOauthResponse>;
   register: (
     name: string,
     email: string,
@@ -46,108 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // First, check for session token in URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const sessionToken = urlParams.get("session");
-        const authSuccess = urlParams.get("auth");
-        const error = urlParams.get("error");
-
-        // Handle error cases
-        if (error) {
-          console.log("❌ [DEBUG] Auth error from URL:", error);
-          let errorMessage = "Authentication failed";
-
-          switch (error) {
-            case "missing_session":
-              errorMessage = "Session token missing";
-              break;
-            case "invalid_session":
-              errorMessage = "Invalid or expired session";
-              break;
-            case "user_not_found":
-              errorMessage = "User account not found";
-              break;
-            case "auth_failed":
-              errorMessage = "Authentication failed";
-              break;
-          }
-
-          toast.error(errorMessage);
-
-          // Clean URL
-          window.history.replaceState(
-            {},
-            document.title,
-            window.location.pathname
-          );
-          setLoading(false);
-          return;
-        }
-
-        // Handle successful auth redirect from server
-        if (authSuccess === "success") {
-          console.log("✅ [DEBUG] Auth success from server redirect");
-
-          // Clean URL
-          window.history.replaceState(
-            {},
-            document.title,
-            window.location.pathname
-          );
-
-          try {
-            // Fetch user profile since server set the cookie
-            const userData = await profileAPI.getProfile();
-            setUser(userData);
-            setIsAuth(true);
-            toast.success("Welcome back!");
-
-            // Navigate to dashboard
-            navigate("/dashboard", { replace: true });
-            return;
-          } catch (profileError) {
-            console.error(
-              "❌ [DEBUG] Failed to fetch profile after server auth:",
-              profileError
-            );
-            toast.error("Failed to load user profile");
-          }
-        }
-
-        // Handle session token from URL (if using JSON response method)
-        if (sessionToken) {
-          console.log("🔍 [DEBUG] Session token found in URL:", sessionToken);
-
-          // Clean URL immediately to prevent loops
-          const cleanUrl = new URL(window.location.href);
-          cleanUrl.searchParams.delete("session");
-          window.history.replaceState({}, document.title, cleanUrl.toString());
-
-          try {
-            console.log("🔍 [DEBUG] Attempting session authentication...");
-            const data = await authAPI.sessionAuth({ sessionToken });
-
-            if (data && data.user) {
-              console.log("✅ [DEBUG] Session auth successful:", data.user);
-              setUser(data.user);
-              setIsAuth(true);
-              toast.success("Welcome back!");
-
-              // Navigate to dashboard
-              navigate("/dashboard", { replace: true });
-              return;
-            }
-          } catch (sessionError) {
-            console.error(
-              "❌ [DEBUG] Session authentication failed:",
-              sessionError
-            );
-            toast.error("Session expired. Please try again.");
-            // Continue to regular token validation
-          }
-        }
-
-        // Fall back to regular token validation
+        // Regular token validation
         console.log("🔍 [DEBUG] Checking existing token...");
         const isValid = await authAPI.validateToken();
 
@@ -214,11 +126,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const telegramOauth = async (
-    telegramId: string,
+    telegramId: number,
     first_name: string,
     last_name: string,
     username: string
-  ) => {
+  ): Promise<TelegramOauthResponse> => {
     setLoading(true);
     try {
       const requestData = {
@@ -233,7 +145,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (data && data.user) {
         setUser(data.user);
         setIsAuth(true);
-        toast.success("Authentication successful!");
+        // toast.success("Authentication successful!");
         const intendedPath = location.state?.from || "/dashboard";
         navigate(intendedPath, { replace: true });
       }
@@ -241,32 +153,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error("Telegram OAuth error:", error);
       toast.error("Authentication failed. Please try again.");
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const sessionAuth = async (sessionToken: string) => {
-    setLoading(true);
-    try {
-      const requestData = {
-        sessionToken: sessionToken,
-      };
-
-      console.log("🔍 [DEBUG] Making session auth API call...");
-      const data = await authAPI.sessionAuth(requestData);
-
-      if (data && data.user) {
-        console.log("✅ [DEBUG] Session auth API successful:", data.user);
-        setUser(data.user);
-        setIsAuth(true);
-        toast.success("Welcome back!");
-        return data;
-      }
-    } catch (error) {
-      console.error("❌ [DEBUG] Session authentication error:", error);
-      toast.error("Session expired. Please try again.");
       throw error;
     } finally {
       setLoading(false);
@@ -299,7 +185,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logout,
         updateUserData,
         telegramOauth,
-        sessionAuth,
       }}
     >
       {children}

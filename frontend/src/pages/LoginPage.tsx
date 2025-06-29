@@ -1,8 +1,14 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader, PawPrint } from "lucide-react";
-import { toast } from "sonner";
+
+import {
+  initDataRaw as _initDataRaw,
+  initDataState as _initDataState,
+  type User,
+  useSignal,
+} from "@telegram-apps/sdk-react";
 
 const LoginPage = () => {
   const { telegramOauth, isAuthenticated } = useAuth();
@@ -10,6 +16,10 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
+
+  const initDataState = useSignal(_initDataState);
+
+  const [user] = useState<User>(initDataState?.user as User);
 
   const from = (location.state as any)?.from || "/dashboard";
 
@@ -23,21 +33,6 @@ const LoginPage = () => {
   useEffect(() => {
     const initTelegramLogin = async () => {
       try {
-        if (typeof window === "undefined" || !window.Telegram?.WebApp) {
-          throw new Error("This app must be opened through Telegram.");
-        }
-
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-
-        const user = tg.initDataUnsafe?.user;
-        if (!user || !user.id) {
-          throw new Error("Unable to retrieve Telegram user.");
-        }
-
-        // Expand UI & auth user
-        tg.expand();
-
         await telegramOauth(
           user.id,
           user.first_name || "",
@@ -92,6 +87,8 @@ const LoginPage = () => {
             >
               Kindly close and reopen the app. Thanks
             </button>
+            <Link to="/index">Index</Link>
+
             {error.includes("Telegram") && (
               <button
                 onClick={() => window.Telegram?.WebApp?.close()}

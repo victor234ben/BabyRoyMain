@@ -1,15 +1,7 @@
 // icons/Earn.tsx
 
-/**
- * This project was developed by Nikandr Surkov.
- * 
- * YouTube: https://www.youtube.com/@NikandrSurkov
- * GitHub: https://github.com/nikandr-surkov
- */
 
-import { IconProps } from "../utils/types";
-
-const Earn: React.FC<IconProps> = ({ size = 24, className = "" }) => {
+const Earn = ({ size = 24, className = "" }) => {
 
     const svgSize = `${size}px`;
 

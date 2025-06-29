@@ -1,19 +1,13 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  Users,
   Plus,
   Edit,
   Trash2,
-  Eye,
   ToggleLeft,
   ToggleRight,
-  Search,
-  Filter,
   LogOut,
-  LayoutDashboardIcon,
-  LayoutDashboardIcon as DashboardIcon,
   WorkflowIcon,
-  Settings,
+  LayoutDashboard,
 } from "lucide-react";
 
 // API Configuration
@@ -21,7 +15,7 @@ const API_BASE_URL =
   import.meta.env.VITE_ADMIN_API_URL || "http://localhost:5000/api/admin";
 
 const api = {
-  login: async (credentials) => {
+  login: async (credentials: any) => {
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -30,7 +24,7 @@ const api = {
     return response.json();
   },
 
-  getTasks: async (token, params = {}) => {
+  getTasks: async (token: any, params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     const response = await fetch(`${API_BASE_URL}/tasks?${queryString}`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -38,7 +32,7 @@ const api = {
     return response.json();
   },
 
-  createTask: async (token, task) => {
+  createTask: async (token: any, task: any) => {
     const response = await fetch(`${API_BASE_URL}/tasks`, {
       method: "POST",
       headers: {
@@ -50,7 +44,7 @@ const api = {
     return response.json();
   },
 
-  updateTask: async (token, id, task) => {
+  updateTask: async (token: any, id: any, task: any) => {
     const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
       method: "PUT",
       headers: {
@@ -62,7 +56,7 @@ const api = {
     return response.json();
   },
 
-  deleteTask: async (token, id) => {
+  deleteTask: async (token: any, id: any) => {
     const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
@@ -70,7 +64,7 @@ const api = {
     return response.json();
   },
 
-  toggleTaskStatus: async (token, id) => {
+  toggleTaskStatus: async (token: any, id: any) => {
     const response = await fetch(`${API_BASE_URL}/tasks/${id}/toggle-status`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}` },
@@ -78,7 +72,7 @@ const api = {
     return response.json();
   },
 
-  getDashboardStats: async (token) => {
+  getDashboardStats: async (token: any) => {
     const response = await fetch(`${API_BASE_URL}/dashboard/stats`, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -86,13 +80,66 @@ const api = {
   },
 };
 
+interface Task {
+  _id: number;
+  title: string;
+  description: string | "";
+  type: string;
+  icon: string;
+  category: string;
+  pointsReward: number;
+  action: string;
+  isActive: string;
+  expiresAt: Date | null;
+}
+interface Stats {
+  totalTasks: number;
+  activeTasks: number;
+  inactiveTasks: number;
+}
+interface Admin {
+  _id: string;
+  username: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+}
+
+interface AdminLogin {
+  onLogin: (token: string, admin: Admin) => void;
+}
+
+interface TaskFormProps {
+  token: string;
+  task: Task | null;
+  onSave: (task: Task) => void;
+  onCancel: () => void;
+}
+interface TaskForm {
+  title: string;
+  description: string;
+  type: string;
+  category: string;
+  pointsReward: number;
+  requirements: string;
+  action: string;
+  verificationMethod: string;
+  verificationData: string;
+  taskType: string;
+  status: string;
+  expiresAt: Date | null;
+  icon: string;
+}
+interface AuthTokenProps {
+  token: string;
+}
 // Login Component
-const LoginForm = ({ onLogin }) => {
+const LoginForm: React.FC<AdminLogin> = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -134,7 +181,7 @@ const LoginForm = ({ onLogin }) => {
               <input
                 type="email"
                 required
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 text-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 value={credentials.email}
                 onChange={(e) =>
                   setCredentials({ ...credentials, email: e.target.value })
@@ -149,7 +196,7 @@ const LoginForm = ({ onLogin }) => {
               <input
                 type="password"
                 required
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 text-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 value={credentials.password}
                 onChange={(e) =>
                   setCredentials({ ...credentials, password: e.target.value })
@@ -172,8 +219,8 @@ const LoginForm = ({ onLogin }) => {
 };
 
 // Dashboard Stats Component
-const DashboardStats = ({ token }) => {
-  const [stats, setStats] = useState(null);
+const DashboardStats: React.FC<AuthTokenProps> = ({ token }) => {
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -222,8 +269,13 @@ const DashboardStats = ({ token }) => {
 };
 
 // Task Form Component
-const TaskForm = ({ token, task, onSave, onCancel }) => {
-  const [formData, setFormData] = useState({
+const TaskForm: React.FC<TaskFormProps> = ({
+  token,
+  task,
+  onSave,
+  onCancel,
+}) => {
+  const [formData, setFormData] = useState<TaskForm>({
     title: "",
     description: "",
     type: "one-time",
@@ -235,14 +287,14 @@ const TaskForm = ({ token, task, onSave, onCancel }) => {
     verificationData: "",
     taskType: "ingame",
     status: "available",
-    expiresAt: "",
+    expiresAt: task?.expiresAt ? new Date(task.expiresAt) : null,
     icon: "https://res.cloudinary.com/dtcbirvxc/image/upload/v1747334030/kvqmrisqgphhhlsx3u8u.png",
     ...task,
   });
 
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
     setLoading(true);
 
@@ -280,7 +332,7 @@ const TaskForm = ({ token, task, onSave, onCancel }) => {
                 <input
                   type="text"
                   required
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 text-slate-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   value={formData.title}
                   onChange={(e) =>
                     setFormData({ ...formData, title: e.target.value })
@@ -296,12 +348,12 @@ const TaskForm = ({ token, task, onSave, onCancel }) => {
                   type="number"
                   required
                   min="0"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 text-slate-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   value={formData.pointsReward}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      pointsReward: parseInt(e.target.value),
+                      pointsReward: Number(e.target.value),
                     })
                   }
                 />
@@ -313,7 +365,7 @@ const TaskForm = ({ token, task, onSave, onCancel }) => {
                 Description
               </label>
               <textarea
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 text-slate-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 value={formData.description}
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
@@ -327,7 +379,7 @@ const TaskForm = ({ token, task, onSave, onCancel }) => {
                   Type
                 </label>
                 <select
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 text-slate-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   value={formData.type}
                   onChange={(e) =>
                     setFormData({ ...formData, type: e.target.value })
@@ -344,7 +396,7 @@ const TaskForm = ({ token, task, onSave, onCancel }) => {
                   Category
                 </label>
                 <select
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 text-slate-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   value={formData.category}
                   onChange={(e) =>
                     setFormData({ ...formData, category: e.target.value })
@@ -363,7 +415,7 @@ const TaskForm = ({ token, task, onSave, onCancel }) => {
                   Task Type
                 </label>
                 <select
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 text-slate-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   value={formData.taskType}
                   onChange={(e) =>
                     setFormData({ ...formData, taskType: e.target.value })
@@ -381,7 +433,7 @@ const TaskForm = ({ token, task, onSave, onCancel }) => {
                   Verification Method
                 </label>
                 <select
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 text-slate-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   value={formData.verificationMethod}
                   onChange={(e) =>
                     setFormData({
@@ -401,7 +453,7 @@ const TaskForm = ({ token, task, onSave, onCancel }) => {
                   Status
                 </label>
                 <select
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 text-slate-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   value={formData.status}
                   onChange={(e) =>
                     setFormData({ ...formData, status: e.target.value })
@@ -418,7 +470,7 @@ const TaskForm = ({ token, task, onSave, onCancel }) => {
                 Requirements
               </label>
               <textarea
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 text-slate-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 value={formData.requirements}
                 onChange={(e) =>
                   setFormData({ ...formData, requirements: e.target.value })
@@ -432,7 +484,7 @@ const TaskForm = ({ token, task, onSave, onCancel }) => {
               </label>
               <input
                 type="text"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 text-slate-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 value={formData.action}
                 onChange={(e) =>
                   setFormData({ ...formData, action: e.target.value })
@@ -446,7 +498,7 @@ const TaskForm = ({ token, task, onSave, onCancel }) => {
               </label>
               <input
                 type="text"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 text-slate-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 value={formData.verificationData}
                 onChange={(e) =>
                   setFormData({ ...formData, verificationData: e.target.value })
@@ -462,7 +514,7 @@ const TaskForm = ({ token, task, onSave, onCancel }) => {
                 </label>
                 <input
                   type="url"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 text-slate-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   value={formData.icon}
                   onChange={(e) =>
                     setFormData({ ...formData, icon: e.target.value })
@@ -476,7 +528,7 @@ const TaskForm = ({ token, task, onSave, onCancel }) => {
                 </label>
                 <input
                   type="datetime-local"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 text-slate-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   value={
                     formData.expiresAt
                       ? new Date(formData.expiresAt).toISOString().slice(0, 16)
@@ -518,11 +570,11 @@ const TaskForm = ({ token, task, onSave, onCancel }) => {
 };
 
 // Task List Component
-const TaskList = ({ token }) => {
-  const [tasks, setTasks] = useState([]);
+const TaskList: React.FC<AuthTokenProps> = ({ token }) => {
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingTask, setEditingTask] = useState(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [filters, setFilters] = useState({
     search: "",
     category: "",
@@ -565,12 +617,12 @@ const TaskList = ({ token }) => {
     fetchTasks();
   }, [token, pagination.page, filters]);
 
-  const handleEdit = (task) => {
+  const handleEdit = (task: Task) => {
     setEditingTask(task);
     setShowForm(true);
   };
 
-  const handleDelete = async (taskId) => {
+  const handleDelete = async (taskId: any) => {
     if (!confirm("Are you sure you want to delete this task?")) return;
 
     try {
@@ -583,7 +635,7 @@ const TaskList = ({ token }) => {
     }
   };
 
-  const handleToggleStatus = async (taskId) => {
+  const handleToggleStatus = async (taskId: any) => {
     try {
       const result = await api.toggleTaskStatus(token, taskId);
       if (result.success) {
@@ -594,7 +646,7 @@ const TaskList = ({ token }) => {
     }
   };
 
-  const handleSaveTask = (savedTask) => {
+  const handleSaveTask = () => {
     setShowForm(false);
     setEditingTask(null);
     fetchTasks();
@@ -632,7 +684,7 @@ const TaskList = ({ token }) => {
             <input
               type="text"
               placeholder="Search tasks..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-slate-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               value={filters.search}
               onChange={(e) =>
                 setFilters({ ...filters, search: e.target.value })
@@ -641,7 +693,7 @@ const TaskList = ({ token }) => {
           </div>
 
           <select
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md text-slate-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             value={filters.category}
             onChange={(e) =>
               setFilters({ ...filters, category: e.target.value })
@@ -656,7 +708,7 @@ const TaskList = ({ token }) => {
           </select>
 
           <select
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md text-slate-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             value={filters.type}
             onChange={(e) => setFilters({ ...filters, type: e.target.value })}
           >
@@ -667,7 +719,7 @@ const TaskList = ({ token }) => {
           </select>
 
           <select
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md text-slate-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             value={filters.taskType}
             onChange={(e) =>
               setFilters({ ...filters, taskType: e.target.value })
@@ -679,7 +731,7 @@ const TaskList = ({ token }) => {
           </select>
 
           <select
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md text-slate-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             value={filters.status}
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
           >
@@ -864,7 +916,7 @@ const TaskList = ({ token }) => {
 const AdminDashboard = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [token, setToken] = useState("");
-  const [admin, setAdmin] = useState(null);
+  const [admin, setAdmin] = useState<Admin | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
 
   useEffect(() => {
@@ -878,7 +930,7 @@ const AdminDashboard = () => {
     }
   }, []);
 
-  const handleLogin = (token, adminData) => {
+  const handleLogin = (token: string, adminData: Admin) => {
     localStorage.setItem("adminToken", token);
     localStorage.setItem("adminData", JSON.stringify(adminData));
     setToken(token);
@@ -937,7 +989,7 @@ const AdminDashboard = () => {
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
-              <DashboardIcon className="w-4 h-4 inline mr-2" />
+              <LayoutDashboard className="w-4 h-4 inline mr-2" />
               Dashboard
             </button>
             <button

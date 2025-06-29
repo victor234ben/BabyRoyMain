@@ -11,7 +11,7 @@ type LeaderboardItem = {
 };
 
 const LeaderBoardPage = () => {
-  const [displayLb, setDisplayLb] = useState(false);
+  const [displayLb] = useState(false);
   const leaderboardData: LeaderboardItem[] = [
     { wallet: "Pishnahad_Sup", balance: "53,137,490", place: "🥇" },
     { wallet: "imGet", balance: "52,374,426", place: "🥈" },
