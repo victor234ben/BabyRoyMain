@@ -103,7 +103,18 @@ const LoginPage = () => {
     );
   }
 
-  return <p>Authentication complete</p>;
+  return (
+    <p>
+      Kindly open the application in telegram interface.{" "}
+      <strong> Thanks</strong>
+      <button
+        onClick={() => window.location.reload()}
+        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+      >
+        Kindly close and reopen the app. Thanks
+      </button>
+    </p>
+  );
 };
 
 export default LoginPage;
